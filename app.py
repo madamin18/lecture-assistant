@@ -16,6 +16,11 @@ from rag import SlideRAG, cited_hits, make_client, render_page
 
 st.set_page_config(page_title="Lecture Notes Assistant", page_icon="📚")
 
+if not config.LLM_API_KEY:
+    st.error("No API key found. Add GEMINI_API_KEY to `.env` (local) or to the app's "
+             "Secrets on Streamlit Cloud (Manage app -> Settings -> Secrets).")
+    st.stop()
+
 
 # ---------- shared by all visitors (loaded once per server) ----------
 @st.cache_resource(show_spinner="Loading the search model…")
