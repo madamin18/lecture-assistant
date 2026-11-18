@@ -1,0 +1,569 @@
+{
+ "index": "b93b99409cd6c355",
+ "answers": {
+  "what is a hallucination?|k=8|lectures=": {
+   "answer": "A hallucination is an unsupported generated claim [L01 slide 23, L01 slide 59, L01 slide 56].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.01704573631286621,
+    "translation": null,
+    "lectures": [],
+    "named": false,
+    "answer_s": 8.12040662765503,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L01 slide 23",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.8614
+    },
+    {
+     "cite": "L01 slide 59",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.8001
+    },
+    {
+     "cite": "L01 slide 56",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7904
+    },
+    {
+     "cite": "L02 slide 35",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7918
+    },
+    {
+     "cite": "L01 slide 60",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7871
+    },
+    {
+     "cite": "L02 slide 60",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7853
+    },
+    {
+     "cite": "L09 slide 5",
+     "pdf": "data/slides/L09_Self-Improving_Agents.pdf",
+     "score": 0.7851
+    },
+    {
+     "cite": "L09 slide 13",
+     "pdf": "data/slides/L09_Self-Improving_Agents.pdf",
+     "score": 0.7818
+    }
+   ]
+  },
+  "does raising the temperature make the model's answers more accurate?|k=8|lectures=": {
+   "answer": "No, raising the temperature does not add knowledge or truth, and it is an anti-pattern to treat temperature as a truth dial [L02 slide 59, L02 slide 54]. Temperature only rescales logits and changes selection probabilities or concentration, while evaluation determines usefulness [L02 slide 14, L02 slide 54].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.011461496353149414,
+    "translation": null,
+    "lectures": [],
+    "named": false,
+    "answer_s": 7.437413215637207,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L07 slide 29",
+     "pdf": "data/slides/L07_Generative_AI_in_Industry.pdf",
+     "score": 0.82
+    },
+    {
+     "cite": "L02 slide 59",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8232
+    },
+    {
+     "cite": "L02 slide 17",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8157
+    },
+    {
+     "cite": "L02 slide 54",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.835
+    },
+    {
+     "cite": "L02 slide 14",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8344
+    },
+    {
+     "cite": "L02 slide 16",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8304
+    },
+    {
+     "cite": "L04 slide 54",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.826
+    },
+    {
+     "cite": "L04 slide 3",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.8076
+    }
+   ]
+  },
+  "how is recall@k calculated?|k=8|lectures=": {
+   "answer": "Recall@k is calculated as the number of relevant items found in the top $k$, divided by all known (or labeled) relevant items [L06 slide 14, L04 slide 30].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.011506319046020508,
+    "translation": null,
+    "lectures": [],
+    "named": false,
+    "answer_s": 8.318551778793335,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L06 slide 14",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8629
+    },
+    {
+     "cite": "L06 slide 49",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.854
+    },
+    {
+     "cite": "L04 slide 30",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.8416
+    },
+    {
+     "cite": "L06 slide 19",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8214
+    },
+    {
+     "cite": "L03 slide 37",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8115
+    },
+    {
+     "cite": "L03 slide 21",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.805
+    },
+    {
+     "cite": "L03 slide 39",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8023
+    },
+    {
+     "cite": "L01 slide 27",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7973
+    }
+   ]
+  },
+  "what is the difference between a fixed workflow and an agent?|k=8|lectures=": {
+   "answer": "The difference between a fixed workflow and an agent is who chooses the next step at runtime [L08 slide 3]. In a fixed workflow, code determines the path, whereas in an agent loop, the model chooses an action, calls a tool, and chooses again using new evidence [L08 slide 3].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.014060258865356445,
+    "translation": null,
+    "lectures": [],
+    "named": false,
+    "answer_s": 6.981983661651611,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L08 slide 3",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8932
+    },
+    {
+     "cite": "L08 slide 44",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8861
+    },
+    {
+     "cite": "L08 slide 2",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8636
+    },
+    {
+     "cite": "L08 slide 8",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8625
+    },
+    {
+     "cite": "L08 slide 1",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8511
+    },
+    {
+     "cite": "L08 slide 37",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8563
+    },
+    {
+     "cite": "L08 slide 31",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8597
+    },
+    {
+     "cite": "L08 slide 42",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8565
+    }
+   ]
+  },
+  "환각이란 무엇인가요?|k=8|lectures=": {
+   "answer": "환각(hallucination)은 지원되지 않는 생성된 주장(unsupported generated claim)입니다 [L01 slide 23].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 6.7174201011657715,
+    "translation": "What is hallucination?",
+    "lectures": [],
+    "named": false,
+    "answer_s": 7.935102224349976,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L01 slide 23",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.8601
+    },
+    {
+     "cite": "L01 slide 59",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7998
+    },
+    {
+     "cite": "L01 slide 56",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7869
+    },
+    {
+     "cite": "L02 slide 35",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7924
+    },
+    {
+     "cite": "L01 slide 60",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7907
+    },
+    {
+     "cite": "L02 slide 60",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7877
+    },
+    {
+     "cite": "L09 slide 5",
+     "pdf": "data/slides/L09_Self-Improving_Agents.pdf",
+     "score": 0.785
+    },
+    {
+     "cite": "L09 slide 13",
+     "pdf": "data/slides/L09_Self-Improving_Agents.pdf",
+     "score": 0.7811
+    }
+   ]
+  },
+  "what is chunk overlap in lesson 3?|k=8|lectures=": {
+   "answer": "In Lesson 3, chunk overlap (`o_tok`) trades continuity for duplication, where more overlap results in fewer boundary losses, more duplicate tokens, and more vectors or storage, while less overlap provides cleaner unit separation with greater boundary risk and a smaller rebuild surface [L03 slide 16]. Chunk overlap and size are hypotheses that must be justified with corpus-specific failure evidence rather than copied framework defaults [L03 slide 16, L03 slide 53].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.012678146362304688,
+    "translation": null,
+    "lectures": [
+     "L03"
+    ],
+    "named": true,
+    "answer_s": 6.929025888442993,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L03 slide 53",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8516
+    },
+    {
+     "cite": "L03 slide 16",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8431
+    },
+    {
+     "cite": "L03 slide 26",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8466
+    },
+    {
+     "cite": "L03 slide 18",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8321
+    },
+    {
+     "cite": "L03 slide 25",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8372
+    },
+    {
+     "cite": "L03 slide 9",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8388
+    },
+    {
+     "cite": "L03 slide 50",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8271
+    },
+    {
+     "cite": "L03 slide 1",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8332
+    }
+   ]
+  },
+  "what must students submit for the lab?|k=8|lectures=": {
+   "answer": "Since there are multiple labs mentioned across different lectures, here is what students must submit for the specific lecture labs that mention submissions:\n\n- **For Lecture 03 (RAG I):** Students must submit a manifest, chunks, results, and one failure note [L03 slide 48].\n- **For Lecture 05 (Improving RAG):** Students must include the complete script and paired JSON output, explain expected cases, unexpected behavior, and any regression found, name which settings changed together in the supplied demonstration, and propose or run one controlled intervention comparison with fixed alternatives [L05 slide 63]. \n\nIf you meant a different lab, please let me know which lecture you are referring to!",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.010232925415039062,
+    "translation": null,
+    "lectures": [],
+    "named": false,
+    "answer_s": 8.639641761779785,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L04 slide 40",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.8001
+    },
+    {
+     "cite": "L05 slide 63",
+     "pdf": "data/slides/L05_Improving_RAG.pdf",
+     "score": 0.8265
+    },
+    {
+     "cite": "L08 slide 4",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8045
+    },
+    {
+     "cite": "L01 slide 15",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.793
+    },
+    {
+     "cite": "L02 slide 49",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8071
+    },
+    {
+     "cite": "L03 slide 48",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.7865
+    },
+    {
+     "cite": "L02 slide 41",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8021
+    },
+    {
+     "cite": "L08 slide 38",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.7926
+    }
+   ]
+  },
+  "what does reciprocal rank measure?|k=8|lectures=": {
+   "answer": "Reciprocal rank measures the inverse of the rank of the first relevant item (or first useful result) for a query (calculated as RR = 1 / first relevant rank) [L06 slide 16].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.010002374649047852,
+    "translation": null,
+    "lectures": [],
+    "named": false,
+    "answer_s": 1.2724575996398926,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L06 slide 16",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8652
+    },
+    {
+     "cite": "L06 slide 15",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.822
+    },
+    {
+     "cite": "L05 slide 26",
+     "pdf": "data/slides/L05_Improving_RAG.pdf",
+     "score": 0.8213
+    },
+    {
+     "cite": "L05 slide 56",
+     "pdf": "data/slides/L05_Improving_RAG.pdf",
+     "score": 0.8035
+    },
+    {
+     "cite": "L05 slide 62",
+     "pdf": "data/slides/L05_Improving_RAG.pdf",
+     "score": 0.7863
+    },
+    {
+     "cite": "L06 slide 50",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.7863
+    },
+    {
+     "cite": "L04 slide 13",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.7916
+    },
+    {
+     "cite": "L06 slide 13",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.7797
+    }
+   ]
+  },
+  "what are the key takeaways of lesson 2?|k=8|lectures=": {
+   "answer": "The five key takeaways of Lesson 2 are:\n1. Token counts are model-specific measurements, not word-count estimates [L02 slide 59].\n2. Context must be assembled in order and budgeted before generation [L02 slide 59].\n3. Temperature reshapes a distribution without adding knowledge or truth [L02 slide 59].\n4. Embeddings are model-specific vectors whose geometry depends on an objective [L02 slide 59].\n5. Cosine similarity ranks direction and cannot by itself prove correctness [L02 slide 59].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.01103663444519043,
+    "translation": null,
+    "lectures": [
+     "L02"
+    ],
+    "named": true,
+    "answer_s": 6.806854009628296,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L02 slide 4",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.811
+    },
+    {
+     "cite": "L02 slide 59",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7988
+    },
+    {
+     "cite": "L02 slide 1",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8027
+    },
+    {
+     "cite": "L02 slide 47",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7872
+    },
+    {
+     "cite": "L02 slide 42",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8242
+    },
+    {
+     "cite": "L02 slide 50",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8179
+    },
+    {
+     "cite": "L02 slide 41",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8155
+    },
+    {
+     "cite": "L02 slide 48",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8175
+    }
+   ]
+  },
+  "rag 시스템의 실패는 어떻게 진단하나요?|k=8|lectures=": {
+   "answer": "RAG 시스템의 실패를 진단하기 위해서는 코드를 변경하기 전에 증거를 바탕으로 각 단계를 측정하고 실패를 진단해야 합니다 [L06 slide 1]. 분석 체크리스트를 통해 실패가 처음 발생한 지점을 확인하고(`failure_label` 및 `failure_reason`), 단순 횟수가 아닌 트레이스를 다시 재생하여 어느 슬라이스가 변경되었는지 확인합니다 [L06 slide 59].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 8.555792570114136,
+    "translation": "How to diagnose failures in a RAG system?",
+    "lectures": [],
+    "named": false,
+    "answer_s": 7.2876622676849365,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L06 slide 1",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8955
+    },
+    {
+     "cite": "L06 slide 2",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8806
+    },
+    {
+     "cite": "L06 slide 59",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8823
+    },
+    {
+     "cite": "L06 slide 30",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8732
+    },
+    {
+     "cite": "L06 slide 3",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8775
+    },
+    {
+     "cite": "L06 slide 40",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8725
+    },
+    {
+     "cite": "L06 slide 6",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8694
+    },
+    {
+     "cite": "L06 slide 41",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8748
+    }
+   ]
+  }
+ }
+}

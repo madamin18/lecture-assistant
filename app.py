@@ -22,6 +22,7 @@ import streamlit as st
 from openai import APIStatusError
 from sentence_transformers import SentenceTransformer
 
+import answer_cache
 import config
 import ingest
 import rag as rag_module
@@ -30,7 +31,7 @@ import rag as rag_module
 def code_version() -> str:
     """Fingerprint of the search/answer code and settings."""
     h = hashlib.sha1()
-    for name in ("rag.py", "config.py", "ingest.py"):
+    for name in ("rag.py", "config.py", "ingest.py", "answer_cache.py"):
         h.update(Path(__file__).with_name(name).read_bytes())
     return h.hexdigest()[:12]
 
@@ -43,7 +44,7 @@ def load_code() -> str:
     gets new objects (also when a change is reverted)."""
     version = code_version()
     if getattr(rag_module, "LOADED_VERSION", None) != version:
-        for module in (config, ingest, rag_module):
+        for module in (config, answer_cache, ingest, rag_module):
             importlib.reload(module)
         rag_module.LOADED_VERSION = version
         rag_module.LOAD_ID = f"{version}-{time.time_ns()}"
@@ -81,6 +82,18 @@ def load_demo(version: str):
         return SlideRAG(embedder=load_embedder(), client=load_client(version))
     except FileNotFoundError:  # no index/ folder: site runs upload-only
         return None
+
+
+@st.cache_resource
+def runtime_answers(version: str) -> dict:
+    """First questions already answered on this server, shared by all visitors."""
+    return {}
+
+
+@st.cache_resource(show_spinner=False)
+def saved_answers(version: str) -> dict:
+    """Answers prepared by warm_cache.py for the demo slides."""
+    return answer_cache.load_file()
 
 
 @st.cache_data(max_entries=400, show_spinner=False)
@@ -145,15 +158,7 @@ ASK = ":material/forum: Ask"
 PRACTICE = ":material/quiz: Practice exam"
 BROWSE = ":material/auto_stories: Browse lectures"
 
-DEMO_QUESTIONS = {  # one per part of the course; labels are what the chips show
-    ":material/help: What is a hallucination?": "What is a hallucination?",
-    ":material/thermostat: Does temperature make answers more accurate?":
-        "Does raising the temperature make the model's answers more accurate?",
-    ":material/analytics: How is recall@k calculated?": "How is recall@k calculated?",
-    ":material/account_tree: Workflow vs agent":
-        "What is the difference between a fixed workflow and an agent?",
-    ":material/translate: 환각이란 무엇인가요?": "환각이란 무엇인가요?",
-}
+DEMO_QUESTIONS = config.DEMO_QUESTIONS  # starter chips (answers prepared by warm_cache.py)
 KINDS = {"mixed": "Mixed", "mcq": "Multiple choice", "short": "Short answer"}
 LANGS = {"same": "Same as slides", "en": "English", "ko": "한국어"}
 LETTERS = "ABCDE"
@@ -311,6 +316,8 @@ def trace_label(t: dict) -> str:
     label = f"Searched {t['n_slides']} slides in {t['search_s']:.1f} s"
     if t.get("model"):
         label += f" · answered in {t['answer_s']:.1f} s"
+    if t.get("cached"):
+        label += " · saved answer, shown instantly"
     return label
 
 
@@ -332,6 +339,10 @@ def trace_steps(t: dict):
         with st.status("No slide was close enough, so the AI wasn't asked", type="step",
                        state="complete"):
             st.caption("The answer is the standard refusal.")
+    if t.get("cached"):
+        with st.status("Shown from saved answers", type="step", state="complete"):
+            st.caption("This question was answered before with the same slides and settings, "
+                       "so the saved answer is shown instantly instead of asking the AI again.")
 
 
 def show_sources(answer: str, hits: list):
@@ -433,6 +444,21 @@ def ask_page():
     with st.chat_message("user"):
         st.markdown(question)
 
+    # A chat's first question may have been answered before: show that instantly.
+    lecture_filter = st.session_state.lecture_filter or None
+    ckey = f"{key}|{answer_cache.cache_key(question, k, lecture_filter)}"
+    if not messages:
+        entry = runtime_answers(VERSION).get(ckey)
+        if entry is None and not files:
+            entry = saved_answers(VERSION).get(answer_cache.cache_key(question, k, lecture_filter))
+        cached = answer_cache.from_entry(entry, rag.chunks) if entry else None
+        if cached:
+            answer, hits, trace = cached
+            st.session_state.messages += [
+                {"role": "user", "content": question},
+                {"role": "assistant", "content": answer, "hits": hits, "trace": trace}]
+            st.rerun()
+
     with st.chat_message("assistant"):
         trace = {"n_slides": len(rag.chunks), "n_lectures": n_lectures, "k": k}
         try:
@@ -454,6 +480,8 @@ def ask_page():
         except APIStatusError as e:
             api_error(e)
             return
+    if not messages and config.BUSY_MESSAGE not in answer and "cut off" not in answer:
+        runtime_answers(VERSION)[ckey] = answer_cache.to_entry(answer, hits, trace)
     st.session_state.messages += [
         {"role": "user", "content": question},
         {"role": "assistant", "content": answer, "hits": hits, "trace": trace}]

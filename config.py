@@ -56,3 +56,15 @@ BUSY_MESSAGE = "The AI service is busy right now. Please try again in a minute."
 # Practice questions ("Practice exam" tab)
 QUIZ_MAX_SLIDES = 20     # slides sent to the model per quiz
 QUIZ_TIMEOUT = 30        # writing 15 questions takes ~5-10 s on flash-lite; longer than one answer
+
+# One-click starter questions on the website (label shown on the chip -> question asked).
+# warm_cache.py prepares answers for these so the demo is instant.
+DEMO_QUESTIONS = {
+    ":material/help: What is a hallucination?": "What is a hallucination?",
+    ":material/thermostat: Does temperature make answers more accurate?":
+        "Does raising the temperature make the model's answers more accurate?",
+    ":material/analytics: How is recall@k calculated?": "How is recall@k calculated?",
+    ":material/account_tree: Workflow vs agent":
+        "What is the difference between a fixed workflow and an agent?",
+    ":material/translate: 환각이란 무엇인가요?": "환각이란 무엇인가요?",
+}
