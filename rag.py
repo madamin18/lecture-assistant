@@ -268,8 +268,10 @@ class SlideRAG:
         messages = [{"role": "system",
                      "content": SYSTEM_PROMPT.format(refusal=refusal_for(question))}]
         messages += [{"role": m["role"], "content": m["content"][:800]} for m in history]
+        # Name the answer language: after a Korean chat, an English question was answered in Korean.
         messages.append({"role": "user",
-                         "content": f"Slide excerpts:\n{context}\n\nQuestion: {question}"})
+                         "content": f"Slide excerpts:\n{context}\n\nQuestion: {question}\n\n"
+                                    f"(Answer in {LANGUAGE_NAMES[language(question)]}.)"})
         return messages, hits
 
     def answer(self, question: str, k: int = config.TOP_K, history: list | None = None):
