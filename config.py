@@ -18,7 +18,9 @@ LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.1-flash-lite")
 # flash-lite is the default because it answers in 1-2 s; gemini-3.5-flash was often overloaded
 # (timeouts, 503) in testing. Tried in order if the main model is busy (503), rate-limited (429),
 # unavailable (404) or too slow (LLM_TIMEOUT).
-FALLBACK_MODELS = [m.strip() for m in os.getenv("FALLBACK_MODELS", "gemini-3.5-flash").split(",") if m.strip()]
+# Both are listed so there's always a backup whichever one LLM_MODEL names (duplicates are skipped).
+FALLBACK_MODELS = [m.strip() for m in os.getenv(
+    "FALLBACK_MODELS", "gemini-3.1-flash-lite,gemini-3.5-flash").split(",") if m.strip()]
 
 LLM_TIMEOUT = 20          # seconds to wait for a model before trying the next one
 COOLDOWN_SECONDS = 120    # skip a model that just failed for this long (shared by all visitors)
@@ -42,4 +44,4 @@ BUSY_MESSAGE = "The AI service is busy right now. Please try again in a minute."
 
 # Practice questions ("Practice exam" tab)
 QUIZ_MAX_SLIDES = 20     # slides sent to the model per quiz
-QUIZ_TIMEOUT = 60        # writing 10+ questions takes longer than one answer
+QUIZ_TIMEOUT = 30        # writing 15 questions takes ~5-10 s on flash-lite; longer than one answer
