@@ -14,13 +14,16 @@ EMBED_MODEL = "intfloat/multilingual-e5-small"
 # Gemini: set GEMINI_API_KEY + LLM_BASE_URL in .env.  OpenAI: set OPENAI_API_KEY only.
 LLM_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL") or None
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.1-flash-lite")
-# flash-lite is the default because it answers in 1-2 s; gemini-3.5-flash was often overloaded
-# (timeouts, 503) in testing. Tried in order if the main model is busy (503), rate-limited (429),
-# unavailable (404) or too slow (LLM_TIMEOUT).
-# Both are listed so there's always a backup whichever one LLM_MODEL names (duplicates are skipped).
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
+# Tried in order if the main model is busy (503), rate-limited (429), unavailable (404) or too
+# slow (LLM_TIMEOUT). The free tier has a separate DAILY request quota per model (e.g. 500 for
+# the flash-lite models, 20 for gemini-3.5-flash), so listing several models also multiplies the
+# daily budget. Duplicates of LLM_MODEL are skipped. In testing (Nov 2026) gemini-3.5-flash was
+# often overloaded, and gemini-flash-latest / 3.7 / 3.8-flash timed out.
 FALLBACK_MODELS = [m.strip() for m in os.getenv(
-    "FALLBACK_MODELS", "gemini-3.1-flash-lite,gemini-3.5-flash").split(",") if m.strip()]
+    "FALLBACK_MODELS",
+    "gemini-3.5-flash-lite,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash"
+).split(",") if m.strip()]
 
 LLM_TIMEOUT = 20          # seconds to wait for a model before trying the next one
 COOLDOWN_SECONDS = 120    # skip a model that just failed for this long (shared by all visitors)
@@ -30,7 +33,9 @@ MAX_UPLOAD_PAGES = 300   # total pages across all PDFs one visitor uploads
                          # (per-file size limit: maxUploadSize in .streamlit/config.toml)
 
 MIN_CHARS = 80    # slides shorter than this get merged with the next slide
-TOP_K = 5          # how many slides to retrieve per question
+TOP_K = 8          # how many slides to retrieve per question. 8 rather than 5 since all 9
+                   # lectures (491 slides) are loaded: on the 47-question test set it removed
+                   # false refusals (5% -> 0%) and raised correct answers (90% -> 100%).
 # Combine meaning-based search with keyword search (BM25). Helps questions whose key word
 # appears on the slide but whose meaning is vague, e.g. "What must students submit?".
 HYBRID_SEARCH = True

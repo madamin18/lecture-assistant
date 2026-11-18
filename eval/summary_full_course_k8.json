@@ -1,0 +1,42 @@
+{
+  "name": "full_course_k8",
+  "k": 8,
+  "min_score": 0.78,
+  "model": "gemini-3.1-flash-lite",
+  "hybrid_search": true,
+  "translate_queries": true,
+  "n_busy_skipped": 9,
+  "n_in_scope": 32,
+  "n_out_of_scope": 6,
+  "retrieval_hit@8_%": 100.0,
+  "retrieval_mrr": 0.807,
+  "citation_accuracy_%": 96.9,
+  "false_refusal_%": 0.0,
+  "correct_refusal_%": 83.3,
+  "answer_correct_%": 100.0,
+  "answer_partial_%": 0.0,
+  "by_language": {
+    "en": {
+      "n_in_scope": 24,
+      "n_out_of_scope": 3,
+      "retrieval_hit@8_%": 100.0,
+      "retrieval_mrr": 0.837,
+      "citation_accuracy_%": 95.8,
+      "false_refusal_%": 0.0,
+      "correct_refusal_%": 66.7,
+      "answer_correct_%": 100.0,
+      "answer_partial_%": 0.0
+    },
+    "ko": {
+      "n_in_scope": 8,
+      "n_out_of_scope": 3,
+      "retrieval_hit@8_%": 100.0,
+      "retrieval_mrr": 0.719,
+      "citation_accuracy_%": 100.0,
+      "false_refusal_%": 0.0,
+      "correct_refusal_%": 100.0,
+      "answer_correct_%": 100.0,
+      "answer_partial_%": 0.0
+    }
+  }
+}

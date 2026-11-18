@@ -174,12 +174,20 @@ if rag is None:
     st.stop()
 
 if not files:
-    titles = ", ".join(title for _, title in rag.lectures)
-    st.info(f"**Demo mode:** using the sample lecture *{titles}*. "
-            "Upload your own PDFs in the sidebar to use those instead.")
+    lectures = rag.lectures
+    if len(lectures) == 1:
+        st.info(f"**Demo mode:** using the sample lecture *{lectures[0][1]}*. "
+                "Upload your own PDFs in the sidebar to use those instead.")
+    else:
+        names = " · ".join(f"{lec} {title}" for lec, title in lectures)
+        st.info(f"**Demo mode:** all {len(lectures)} lectures of the course "
+                f"({len(rag.chunks)} slides): {names}.  \n"
+                "Tip: name a lecture (\"in Lesson 3\", \"3강\") to search only that one. "
+                "Upload your own PDFs in the sidebar to use those instead.")
 else:
     n_files = len({c["pdf"] for c in rag.chunks})
-    st.success(f"Using {n_files} uploaded file(s), {len(rag.chunks)} slides.")
+    st.success(f"Using {n_files} uploaded file(s), {len(rag.chunks)} slides.  \n"
+               "Tip: name a lecture (\"in Lesson 3\", \"L03\") to search only that one.")
 
 
 def slide_caption(title: str, page: int, label) -> str:
@@ -223,11 +231,13 @@ mode = st.segmented_control("Mode", [ASK, PRACTICE], default=ASK, required=True,
 
 # ======================= Ask =======================
 # One-click starter questions for the demo slides (hidden once the chat starts).
-DEMO_QUESTIONS = {
+DEMO_QUESTIONS = {  # one per part of the course; labels are what the chips show
     ":material/help: What is a hallucination?": "What is a hallucination?",
-    ":material/compare_arrows: Zero-shot vs few-shot prompting":
-        "What is the difference between zero-shot and few-shot prompting?",
-    ":material/list: Four parts of a prompt": "What are the four parts of a prompt?",
+    ":material/thermostat: Does temperature make answers more accurate?":
+        "Does raising the temperature make the model's answers more accurate?",
+    ":material/analytics: How is recall@k calculated?": "How is recall@k calculated?",
+    ":material/account_tree: Workflow vs agent":
+        "What is the difference between a fixed workflow and an agent?",
     ":material/translate: 환각이란 무엇인가요?": "환각이란 무엇인가요?",
 }
 

@@ -24,6 +24,10 @@ Rules:
 - If the excerpts do not contain the answer, reply with exactly:
   "{refusal}"
 - Never use outside knowledge, and never invent slide numbers.
+- The excerpts can come from several lectures (the tag starts with the lecture, e.g. L03).
+  If the question could mean more than one of them (e.g. "the lab" when several lectures have
+  a lab), answer briefly for each lecture the excerpts cover and name it, or ask which lecture
+  the student means. Don't refuse only because the question is ambiguous.
 - Earlier messages in the chat are only there so you know what a follow-up question
   refers to ("it", "that", "explain more"). The facts must still come from the excerpts.
 - Be concise. Answer in the same language as the question. If the slides are in another
@@ -108,6 +112,22 @@ def refusal_for(question: str) -> str:
     return config.REFUSAL_KO if language(question) == "ko" else config.REFUSAL
 
 
+# "Lesson 1", "lecture 03", "L05", "1강", "3차시". A bare "L" needs two digits, so terms like
+# "L2 norm" aren't read as lecture 2.
+LECTURE_MENTION = re.compile(
+    r"\b(?:lesson|lecture|lec)\s*0?(\d{1,2})\b|\bL(\d{2})\b|(\d{1,2})\s*(?:강|차시)", re.IGNORECASE)
+
+
+def mentioned_lectures(text: str, available) -> set:
+    """Lecture tags the question names (e.g. 'the Lesson 1 lab' -> {'L01'}), if they exist."""
+    found = set()
+    for m in LECTURE_MENTION.finditer(text):
+        tag = f"L{int(next(g for g in m.groups() if g)):02d}"
+        if tag in available:
+            found.add(tag)
+    return found
+
+
 class BM25:
     """Keyword search (Okapi BM25). Finds slides that share rare exact words with the question,
     which meaning-based search can miss (e.g. 'submit' -> the 'Submit evidence' slide)."""
@@ -145,6 +165,13 @@ def rrf_ranks(scores: np.ndarray, only_positive: bool = False) -> np.ndarray:
     return contrib
 
 
+def retry_delay(e: Exception) -> float | None:
+    """Seconds the API asks us to wait (Gemini puts "retryDelay": "76943s" in its 429 body)."""
+    response = getattr(e, "response", None)
+    m = re.search(r'"retryDelay":\s*"(\d+(?:\.\d+)?)s"', getattr(response, "text", "") or "")
+    return float(m.group(1)) if m else None
+
+
 def make_client() -> OpenAI:
     # No automatic retries: on failure we move straight to the next model in the list.
     return OpenAI(api_key=config.LLM_API_KEY, base_url=config.LLM_BASE_URL,
@@ -169,6 +196,8 @@ class SlideRAG:
         self.chunks, self.emb = chunks, emb
         self.bm25 = BM25([tokenize(f"{c['title']} {c['text']}") for c in chunks])
         self.slide_lang = language(" ".join(c["text"] for c in chunks[:50]))
+        self.chunk_lectures = np.array([c["lecture"] for c in chunks])
+        self.lecture_tags = set(self.chunk_lectures.tolist())
         self.pdf_data = pdf_data or {}  # uploaded file name -> PDF bytes
         self.model = embedder or SentenceTransformer(config.EMBED_MODEL)
         self.client = client or make_client()
@@ -205,6 +234,10 @@ class SlideRAG:
             fused = rrf_ranks(dense) + rrf_ranks(kw, only_positive=True)
         else:
             fused = dense
+        # A question that names a lecture ("the Lesson 1 lab", "3강") searches only that lecture.
+        named = mentioned_lectures(f"{question} {translation or ''}", self.lecture_tags)
+        if named:
+            fused = np.where(np.isin(self.chunk_lectures, list(named)), fused, -np.inf)
         top = np.argsort(-fused)[:k]
         return [{**self.chunks[i], "score": float(dense[i])} for i in top]
 
@@ -276,8 +309,13 @@ class SlideRAG:
         print(f"[warn] {model} failed ({status}), trying next model...")
         if isinstance(e, APIStatusError) and e.status_code in (400, 401, 403):
             raise e  # bad request or bad key: other models won't help
-        # A rate limit (429) clears within seconds; a timeout or 503 means the model is overloaded.
-        pause = 15 if status == 429 else config.COOLDOWN_SECONDS
+        if status == 429:
+            # A per-minute rate limit clears within seconds. A used-up DAILY quota comes with a
+            # long retryDelay: skip the model for up to an hour instead of retrying it all day.
+            wait = retry_delay(e)
+            pause = min(wait, 3600) if wait and wait > 60 else 15
+        else:  # a timeout or 503 means the model is overloaded
+            pause = config.COOLDOWN_SECONDS
         _cooldown_until[model] = time.time() + pause
 
     def chat(self, messages: list, **kwargs):

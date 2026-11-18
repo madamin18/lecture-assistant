@@ -73,7 +73,19 @@ def slide_labels(doc) -> list:
     found = [n for n in nums if n is not None]
     reliable = (len(found) >= 3 and len(found) >= 0.7 * len(nums) and found[0] >= 1
                 and all(a < b for a, b in zip(found, found[1:])))
-    return nums if reliable else [None] * len(nums)
+    if not reliable:
+        return [None] * len(nums)
+    # Fill a missing number when the neighbours leave only one possibility, e.g. an unnumbered
+    # title page before slide 2 is slide 1. Otherwise leave it unknown (cited by PDF page).
+    filled = list(nums)
+    for i, n in enumerate(nums):
+        if n is not None:
+            continue
+        before = nums[i - 1] if i > 0 else 0
+        after = nums[i + 1] if i + 1 < len(nums) else None
+        if before is not None and after is not None and after - before == 2:
+            filled[i] = before + 1
+    return filled
 
 
 def open_pdf(ref: str, data: bytes | None = None):
