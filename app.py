@@ -49,7 +49,7 @@ def load_code() -> str:
 VERSION = load_code()
 
 from ingest import build_index, page_count  # noqa: E402  (imported after the reload on purpose)
-from rag import SlideRAG, cited_hits, make_client, render_page  # noqa: E402
+from rag import SlideRAG, cited_hits, make_client, refusal_for, render_page  # noqa: E402
 
 st.set_page_config(page_title="Lecture Notes Assistant", page_icon="📚")
 
@@ -182,11 +182,20 @@ else:
     st.success(f"Using {n_files} uploaded file(s), {len(rag.chunks)} slides.")
 
 
+def slide_caption(title: str, page: int, label) -> str:
+    """'Intro · slide 59 (PDF page 56)': the number printed on the slide, plus where it is in
+    the PDF when that differs (exported decks often skip hidden slides)."""
+    if label is None:
+        return f"{title} · PDF page {page}"
+    return f"{title} · slide {label}" + (f" (PDF page {page})" if label != page else "")
+
+
 def show_slide(h):
     data = rag.pdf_data.get(h["pdf"])
-    for page in h["pages"][-2:]:  # merged chunks: the content is on the last pages
+    labels = h.get("labels") or [None] * len(h["pages"])
+    for page, label in list(zip(h["pages"], labels))[-2:]:  # merged chunks: content is last
         st.image(slide_image(h["pdf"], page, key, data),
-                 caption=f"{h['title']} · page {page}")
+                 caption=slide_caption(h["title"], page, label))
 
 
 def show_sources(answer, hits):
@@ -219,6 +228,7 @@ DEMO_QUESTIONS = {
     ":material/compare_arrows: Zero-shot vs few-shot prompting":
         "What is the difference between zero-shot and few-shot prompting?",
     ":material/list: Four parts of a prompt": "What are the four parts of a prompt?",
+    ":material/translate: 환각이란 무엇인가요?": "환각이란 무엇인가요?",
 }
 
 
@@ -237,7 +247,8 @@ def ask_page():
             if m.get("model"):
                 st.caption(f"Answered by {m['model']}")
 
-    question = (st.chat_input("Ask a question about the slides", submit_mode="disable")
+    question = (st.chat_input("Ask a question about the slides (English or 한국어)",
+                              submit_mode="disable")
                 or st.session_state.pop("pending_question", None))
 
     if not files and not st.session_state.messages:
@@ -258,7 +269,7 @@ def ask_page():
             with st.spinner("Searching the slides…"):
                 messages, hits = rag.prepare(question, k, history)
             if messages is None:  # nothing close enough in the slides: refuse without the LLM
-                answer = config.REFUSAL
+                answer = refusal_for(question)
                 st.markdown(answer)
             else:
                 answer = st.write_stream(rag.stream(messages))  # text appears as it's written
@@ -275,13 +286,14 @@ def ask_page():
 
 # ======================= Practice exam =======================
 KINDS = {"mixed": "Mixed", "mcq": "Multiple choice", "short": "Short answer"}
+LANGS = {"same": "Same as slides", "en": "English", "ko": "한국어"}
 LETTERS = "ABCDE"
 
 
-def make_quiz(n: int, kind: str, lectures: list, topic: str):
+def make_quiz(n: int, kind: str, lectures: list, topic: str, lang: str = "same"):
     with st.spinner("Writing practice questions from your slides…"):
         try:
-            questions = rag.generate_quiz(n, kind, lectures, topic)
+            questions = rag.generate_quiz(n, kind, lectures, topic, lang)
         except APIStatusError as e:
             api_error(e)
             return
@@ -295,7 +307,8 @@ def make_quiz(n: int, kind: str, lectures: list, topic: str):
     st.session_state.quiz_count = st.session_state.get("quiz_count", 0) + 1
     st.session_state.quiz = {
         "id": st.session_state.quiz_count, "questions": questions, "checked": False,
-        "responses": {}, "settings": {"n": n, "kind": kind, "lectures": lectures, "topic": topic},
+        "responses": {},
+        "settings": {"n": n, "kind": kind, "lectures": lectures, "topic": topic, "lang": lang},
     }
 
 
@@ -343,7 +356,7 @@ def show_feedback(q: dict, response):
         st.info(f"**Model answer:** {q['answer']}", icon=":material/lightbulb:")
     if q["explanation"]:
         st.caption(q["explanation"])
-    with st.expander(f"📍 From slide {q['hit']['cite']}"):
+    with st.expander(f"📍 Source: {q['hit']['cite']}"):
         show_slide(q["hit"])
 
 
@@ -401,11 +414,13 @@ def practice_page():
             n = st.segmented_control("Number of questions", [5, 10, 15], default=5, required=True)
             kind = st.segmented_control("Question type", list(KINDS), format_func=KINDS.get,
                                         default="mixed", required=True)
+        lang = st.segmented_control("Language", list(LANGS), format_func=LANGS.get,
+                                    default="same", required=True)
         go = st.form_submit_button("Generate questions", type="primary",
                                    icon=":material/auto_awesome:")
 
     if go:
-        make_quiz(n, kind, chosen, topic)
+        make_quiz(n, kind, chosen, topic, lang)
     elif st.session_state.pop("quiz_regen", False) and st.session_state.quiz:
         make_quiz(**st.session_state.quiz["settings"])
 

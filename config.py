@@ -39,7 +39,13 @@ HYBRID_SEARCH = True
 # off-topic questions; the prompt's refusal rule handles the rest.
 MIN_SCORE = 0.78
 
+# When the question and the slides are in different languages (e.g. a Korean question about
+# English slides), translate the question before searching. Cross-language search alone ranked
+# the wrong slides and scored Korean questions below MIN_SCORE, so they were refused.
+TRANSLATE_QUERIES = True
+
 REFUSAL = "This isn't covered in the lecture slides I have."
+REFUSAL_KO = "강의 슬라이드에서 다루지 않는 내용입니다."
 BUSY_MESSAGE = "The AI service is busy right now. Please try again in a minute."
 
 # Practice questions ("Practice exam" tab)

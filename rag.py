@@ -15,18 +15,26 @@ from sentence_transformers import SentenceTransformer
 import config
 from ingest import open_pdf
 
-SYSTEM_PROMPT = f"""You are a study assistant for a university course.
+SYSTEM_PROMPT = """You are a study assistant for a university course.
 Answer the student's question using ONLY the lecture slide excerpts provided.
 
 Rules:
 - After every sentence that uses a slide, cite it with its tag in square brackets,
-  exactly as given, e.g. [L03 p.14]. One tag per bracket.
+  copied exactly from the excerpt headers, e.g. [L03 slide 14]. One tag per bracket.
 - If the excerpts do not contain the answer, reply with exactly:
-  "{config.REFUSAL}"
+  "{refusal}"
 - Never use outside knowledge, and never invent slide numbers.
 - Earlier messages in the chat are only there so you know what a follow-up question
   refers to ("it", "that", "explain more"). The facts must still come from the excerpts.
-- Be concise. Answer in the same language as the question."""
+- Be concise. Answer in the same language as the question. If the slides are in another
+  language, keep key technical terms from the slides in parentheses, e.g. 환각(hallucination)."""
+
+TRANSLATE_PROMPT = """Translate the student's question into {language} so it can be used to search
+lecture slides written in {language}. Keep technical terms. If it is a follow-up that refers to
+the previous question ("that", "it", "more"), write it as a standalone question.
+Reply with the translated question only."""
+
+LANGUAGE_NAMES = {"en": "English", "ko": "Korean"}
 
 QUIZ_PROMPT = """You write exam practice questions for university students, using ONLY the
 lecture slide excerpts provided. Every question must be answerable from the slide it cites.
@@ -35,9 +43,9 @@ Write {n} questions. {mix}
 Return JSON only, in exactly this shape:
 {{"questions": [
   {{"type": "mcq", "question": "...", "options": ["...", "...", "...", "..."], "answer": 0,
-    "explanation": "why the answer is right, in 1-2 sentences", "cite": "L01 p.14"}},
+    "explanation": "why the answer is right, in 1-2 sentences", "cite": "L01 slide 14"}},
   {{"type": "short", "question": "...", "answer": "a model answer in 1-3 sentences",
-    "explanation": "what a full-mark answer must mention", "cite": "L01 p.14"}}
+    "explanation": "what a full-mark answer must mention", "cite": "L01 slide 14"}}
 ]}}
 
 Rules:
@@ -48,7 +56,14 @@ Rules:
 - Test understanding: definitions, but also why, compare, and apply-to-an-example questions.
 - Cover different slides; never ask two questions about the same fact.
 - Skip slide footers, page numbers, layout, and title or agenda slides.
-- Write the questions in the same language as the slides."""
+- {language}"""
+
+QUIZ_LANGUAGE = {
+    "same": "Write everything in the same language as the slides.",
+    "en": "Write everything (questions, options, answers, explanations) in English.",
+    "ko": "Write everything (questions, options, answers, explanations) in Korean. Keep key "
+          "technical terms from the slides in parentheses, e.g. 환각(hallucination).",
+}
 
 QUIZ_MIX = {
     "mixed": "Make about two thirds multiple choice (\"mcq\") and the rest short answer (\"short\").",
@@ -80,6 +95,17 @@ def tokenize(text: str) -> list:
             out.append(tok)
             out.extend(tok[i:i + 2] for i in range(len(tok) - 1))
     return out
+
+
+def language(text: str) -> str:
+    """'ko' if most letters are Hangul, else 'en'."""
+    letters = [ch for ch in text if ch.isalpha()]
+    hangul = sum("\uac00" <= ch <= "\ud7a3" for ch in letters)
+    return "ko" if letters and hangul / len(letters) > 0.3 else "en"
+
+
+def refusal_for(question: str) -> str:
+    return config.REFUSAL_KO if language(question) == "ko" else config.REFUSAL
 
 
 class BM25:
@@ -142,6 +168,7 @@ class SlideRAG:
             emb = np.load(d / "embeddings.npy")
         self.chunks, self.emb = chunks, emb
         self.bm25 = BM25([tokenize(f"{c['title']} {c['text']}") for c in chunks])
+        self.slide_lang = language(" ".join(c["text"] for c in chunks[:50]))
         self.pdf_data = pdf_data or {}  # uploaded file name -> PDF bytes
         self.model = embedder or SentenceTransformer(config.EMBED_MODEL)
         self.client = client or make_client()
@@ -156,18 +183,23 @@ class SlideRAG:
         return list(seen.items())
 
     # ---------- search ----------
-    def retrieve(self, question: str, k: int = config.TOP_K, previous: str | None = None) -> list:
+    def retrieve(self, question: str, k: int = config.TOP_K, previous: str | None = None,
+                 translation: str | None = None) -> list:
         """Top-k slides. `previous` = the student's previous question, used so follow-ups like
-        "explain that more simply" still find the right slides.
+        "explain that more simply" still find the right slides. `translation` = the question in
+        the slides' language (see translate()).
         Each hit's "score" is the meaning-based (cosine) similarity, used for the refusal check."""
         if not self.chunks:
             return []
-        queries = [question] + ([f"{previous} {question}"] if previous else [])
+        queries = [question] + ([translation] if translation else []) \
+            + ([f"{previous} {question}"] if previous else [])
         qv = self.model.encode([f"query: {q}" for q in queries], normalize_embeddings=True)
-        dense = (self.emb @ qv.T).max(axis=1)  # best match over the plain and follow-up queries
+        dense = (self.emb @ qv.T).max(axis=1)  # best match over all phrasings
 
         if config.HYBRID_SEARCH:
             kw = self.bm25.scores(tokenize(question))
+            if translation:
+                kw = kw + self.bm25.scores(tokenize(translation))
             if previous:
                 kw = kw + 0.5 * self.bm25.scores(tokenize(previous))
             fused = rrf_ranks(dense) + rrf_ranks(kw, only_positive=True)
@@ -176,6 +208,18 @@ class SlideRAG:
         top = np.argsort(-fused)[:k]
         return [{**self.chunks[i], "score": float(dense[i])} for i in top]
 
+    def search(self, question: str, k: int = config.TOP_K, previous: str | None = None):
+        """retrieve(), first translating the question if it isn't in the slides' language.
+        Returns (hits, min_score): the similarity needed to answer instead of refusing."""
+        translation = None
+        cross_language = language(question) != self.slide_lang
+        if cross_language and config.TRANSLATE_QUERIES:
+            translation = self.translate(question, previous)
+        hits = self.retrieve(question, k, previous, translation)
+        # Untranslated cross-language questions score lower, so don't refuse them on score alone;
+        # the prompt's refusal rule still applies.
+        return hits, (0 if cross_language and not translation else config.MIN_SCORE)
+
     # ---------- answering ----------
     def prepare(self, question: str, k: int = config.TOP_K, history: list | None = None):
         """Search and build the LLM messages. Returns (messages, hits); messages is None when
@@ -183,12 +227,13 @@ class SlideRAG:
         history = earlier chat as [{"role": "user"|"assistant", "content": ...}]."""
         history = [m for m in (history or []) if m.get("content")][-4:]  # last 2 exchanges
         previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
-        hits = self.retrieve(question, k, previous)
-        if not hits or max(h["score"] for h in hits) < config.MIN_SCORE:
+        hits, min_score = self.search(question, k, previous)
+        if not hits or max(h["score"] for h in hits) < min_score:
             return None, hits
 
         context = "\n\n".join(f"[{h['cite']}] ({h['title']})\n{h['text']}" for h in hits)
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        messages = [{"role": "system",
+                     "content": SYSTEM_PROMPT.format(refusal=refusal_for(question))}]
         messages += [{"role": m["role"], "content": m["content"][:800]} for m in history]
         messages.append({"role": "user",
                          "content": f"Slide excerpts:\n{context}\n\nQuestion: {question}"})
@@ -199,9 +244,18 @@ class SlideRAG:
         self.last_model = None
         messages, hits = self.prepare(question, k, history)
         if messages is None:
-            return config.REFUSAL, hits
+            return refusal_for(question), hits
         reply = self.chat(messages)
         return (reply if reply is not None else config.BUSY_MESSAGE), hits
+
+    def translate(self, question: str, previous: str | None = None) -> str | None:
+        """The question in the slides' language, for searching. None if the service is busy."""
+        prompt = TRANSLATE_PROMPT.format(language=LANGUAGE_NAMES[self.slide_lang])
+        text = f"Previous question: {previous}\nQuestion: {question}" if previous else question
+        reply = self.chat([{"role": "system", "content": prompt},
+                           {"role": "user", "content": text}], timeout=10)
+        self.last_model = None  # the UI shows the model that wrote the answer, not this
+        return reply or None
 
     # ---------- LLM calls with fallback ----------
     def _attempts(self):
@@ -285,7 +339,8 @@ class SlideRAG:
         parts = np.array_split(np.arange(len(pool)), n)
         return [pool[random.choice(list(p))] for p in parts if len(p)]
 
-    def generate_quiz(self, n: int = 5, kind: str = "mixed", lectures=None, topic: str = ""):
+    def generate_quiz(self, n: int = 5, kind: str = "mixed", lectures=None, topic: str = "",
+                      lang: str = "same"):
         """Practice questions from the slides. Returns a list of question dicts, each with the
         slide it came from under "hit"; [] if the model gave nothing usable; None if busy."""
         slides = self.quiz_slides(lectures, topic, n=min(max(n + 3, 8), config.QUIZ_MAX_SLIDES))
@@ -295,7 +350,8 @@ class SlideRAG:
         focus = f"\nFocus on this topic: {topic.strip()}" if topic.strip() else ""
         extra = max(3, n // 3)  # spare questions: a few usually fail the checks in clean_quiz
         messages = [
-            {"role": "system", "content": QUIZ_PROMPT.format(n=n + extra, mix=QUIZ_MIX[kind])},
+            {"role": "system", "content": QUIZ_PROMPT.format(
+                n=n + extra, mix=QUIZ_MIX[kind], language=QUIZ_LANGUAGE[lang])},
             {"role": "user", "content": f"Slide excerpts:\n{context}{focus}"},
         ]
         reply = self.chat(messages, temperature=0.8, timeout=config.QUIZ_TIMEOUT,
@@ -354,14 +410,17 @@ def clean_quiz(reply: str, slides: list, kind: str = "mixed") -> list:
 
 
 def find_slide(cite: str, by_cite: dict, slides: list):
-    """Match a cite tag to one of the given slides; tolerates 'p.14' inside a 'p.13-14' chunk."""
+    """Match a cite tag to one of the given slides; tolerates 'slide 14' inside a
+    'slide 13-14' chunk."""
     cite = cite.strip().strip("[]")
     if cite in by_cite:
         return by_cite[cite]
-    m = re.match(r"(\S+) p\.(\d+)", cite)
+    m = re.match(r"(\S+) (slide |p\.)(\d+)", cite)
     if m:
+        lec, kind, num = m.group(1), m.group(2), int(m.group(3))
         for c in slides:
-            if c["lecture"] == m.group(1) and int(m.group(2)) in c["pages"]:
+            nums = (c.get("labels") or []) if kind == "slide " else c["pages"]
+            if c["lecture"] == lec and num in nums:
                 return c
     return None
 

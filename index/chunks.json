@@ -6,8 +6,11 @@
   "pages": [
    1
   ],
+  "labels": [
+   1
+  ],
   "text": "GENERATIVE AI Generative AI Systems: Uses, Prompts, and Limits Lesson 01 · From plausible text to evidence-aware systems 01 Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 01",
-  "cite": "L01 p.1"
+  "cite": "L01 slide 1"
  },
  {
   "lecture": "L01",
@@ -16,8 +19,11 @@
   "pages": [
    2
   ],
+  "labels": [
+   2
+  ],
   "text": "Today’s plan Opening, outcomes, evidence hook Part A · uses and prompt contracts Break Part B · limits and papers Break Code, lab, assessment Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 02",
-  "cite": "L01 p.2"
+  "cite": "L01 slide 2"
  },
  {
   "lecture": "L01",
@@ -26,8 +32,11 @@
   "pages": [
    3
   ],
+  "labels": [
+   3
+  ],
   "text": "By the end, you can… Distinguish generation, retrieval, and tool use 01 Construct zero-shot and few-shot prompt 02 Analyze unsupported-output failures 03 Define a bounded capstone use case 04 Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 03",
-  "cite": "L01 p.3"
+  "cite": "L01 slide 3"
  },
  {
   "lecture": "L01",
@@ -36,8 +45,11 @@
   "pages": [
    4
   ],
+  "labels": [
+   4
+  ],
   "text": "You already write deterministic programs; now outputs are probabilistic Treat generated language as a candidate output. Add evidence, validation, and human review in proportion to consequence. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 04 DETERMINISTIC Fee (2 permits) explicit program USD 20 — identical every run Expected mapping GENERATIVE \"Summarize the permit policy\" learned model draft A ≠ draft B — review required Review required",
-  "cite": "L01 p.4"
+  "cite": "L01 slide 4"
  },
  {
   "lecture": "L01",
@@ -46,8 +58,11 @@
   "pages": [
    5
   ],
+  "labels": [
+   5
+  ],
   "text": "The prompt can change measured task performance ACCURACY (%) 17.9% 56.9% Standard prompting Eight-shot chain-of-thought Historical result · PaLM 540B on GSM8K · +39.0 percentage points · no fine-tuning - Wei et al. (2022) Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 05",
-  "cite": "L01 p.5"
+  "cite": "L01 slide 5"
  },
  {
   "lecture": "L01",
@@ -56,8 +71,11 @@
   "pages": [
    6
   ],
+  "labels": [
+   6
+  ],
   "text": "Fluency can hide a truthfulness gap 817 author-written questions 38 adversarial categories 58% best tested baseline: true 94% human: true TruthfulQA (2022) · Human result: one participant, 250-question subset, internet access Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 06",
-  "cite": "L01 p.6"
+  "cite": "L01 slide 6"
  },
  {
   "lecture": "L01",
@@ -66,8 +84,11 @@
   "pages": [
    7
   ],
+  "labels": [
+   7
+  ],
   "text": "Today’s question Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 07 GENERATE candidate text RETRIEVE identified evidence USE TOOLS bounded action EVALUATE measured behavior OPERATE SAFELY limits over time How do we build useful systems whose outputs and actions are supported, testable, and appropriately controlled? Example: 'Can I ride an e-scooter on campus sidewalks?' — generate the wording, retrieve the rule, compute nothing, evaluate support, abstain if the policy is not available.",
-  "cite": "L01 p.7"
+  "cite": "L01 slide 7"
  },
  {
   "lecture": "L01",
@@ -76,8 +97,11 @@
   "pages": [
    8
   ],
+  "labels": [
+   8
+  ],
   "text": "Generation, retrieval, and tools perform different jobs Generate Create candidate language or other content. Example · \"draft a permit- deadline reminder\" Retrieve Find evidence from an identified corpus. SAME CASE · \"find the e- scooter sidewalk rule\" Use a tool Execute a bounded calculation, query, or action. Example · \"compute 2- academic-year fee: 2 × USD 10\" Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 08",
-  "cite": "L01 p.8"
+  "cite": "L01 slide 8"
  },
  {
   "lecture": "L01",
@@ -86,8 +110,11 @@
   "pages": [
    9
   ],
+  "labels": [
+   9
+  ],
   "text": "A generator transforms a task specification into candidate text 1 · INPUT Prompt and available context 2 · MODEL Learned patterns produce a continuation 3 · OUTPUT Candidate response — not an automatic fact check Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 09 INPUT \"Bicycle permit fee? + policy excerpt\" → OUTPUT \"'USD 10 per academic year' — candidate until checked.\"",
-  "cite": "L01 p.9"
+  "cite": "L01 slide 9"
  },
  {
   "lecture": "L01",
@@ -96,8 +123,11 @@
   "pages": [
    10
   ],
+  "labels": [
+   10
+  ],
   "text": "Efficient first uses are reviewable and reversible Draft Start from a blank page; keep human approval. Rewrite Change tone or structure without changing intent. Summarize supplied text Keep the evidence boundary visible. Ideate Generate options, then select and verify. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 10",
-  "cite": "L01 p.10"
+  "cite": "L01 slide 10"
  },
  {
   "lecture": "L01",
@@ -106,8 +136,11 @@
   "pages": [
    11
   ],
+  "labels": [
+   11
+  ],
   "text": "Three most important questions before choosing generative AI Can a human check it? Define evidence and acceptance criteria. Can harm be contained? Keep actions reversible and bounded. Is generation needed? Prefer deterministic logic for fixed rules. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 11",
-  "cite": "L01 p.11"
+  "cite": "L01 slide 11"
  },
  {
   "lecture": "L01",
@@ -116,8 +149,11 @@
   "pages": [
    12
   ],
+  "labels": [
+   12
+  ],
   "text": "Check 1 · Choose the appropriate response mode Classify each scenario: generate vs retrieve vs use a tool A Draft a friendly reminder from supplied policy text. B Return today’s official road- closure notice. C Calculate a fee from a published formula. Discuss: A generate; B retrieve from the official source; C tool or deterministic code. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 12",
-  "cite": "L01 p.12"
+  "cite": "L01 slide 12"
  },
  {
   "lecture": "L01",
@@ -126,8 +162,11 @@
   "pages": [
    13
   ],
+  "labels": [
+   13
+  ],
   "text": "A prompt is a compact task specification Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 13 TASK What operation? \"rewrite notice for first-years\" CONTEXT What evidence? \"supplied permit policy\" CONSTRAINTS What boundaries? \"under 90 words, rules unchanged\" OUTPUT What observable form? \"subject + message\" TESTABLE RESPONSE?",
-  "cite": "L01 p.13"
+  "cite": "L01 slide 13"
  },
  {
   "lecture": "L01",
@@ -136,8 +175,11 @@
   "pages": [
    14
   ],
+  "labels": [
+   14
+  ],
   "text": "Specific verbs make a task testable Hard to test Help with this. Make it better. Tell me something useful. Observable action Classify each claim. Compare two options. Extract dates into JSON. → Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 14",
-  "cite": "L01 p.14"
+  "cite": "L01 slide 14"
  },
  {
   "lecture": "L01",
@@ -146,8 +188,11 @@
   "pages": [
    15
   ],
+  "labels": [
+   15
+  ],
   "text": "Zero-shot prompting begins with one explicit instruction ZERO-SHOT · NO DEMONSTRATIONS Using only the supplied campus policy, rewrite the notice for first-year students. Keep every rule unchanged. Return a subject line and a message under 90 words. Task · evidence boundary · audience · constraint · format Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 15",
-  "cite": "L01 p.15"
+  "cite": "L01 slide 15"
  },
  {
   "lecture": "L01",
@@ -156,8 +201,11 @@
   "pages": [
    16
   ],
+  "labels": [
+   16
+  ],
   "text": "Few-shot prompting demonstrates the target behavior FEW-SHOT · TWO DEMONSTRATIONS Q: What is the fee? A: USD 10 per academic year. Q: What are weekend hours? A: INSUFFICIENT_CONTEXT — hours are absent. Q: Where do I obtain a car permit? A: Examples show both answering and abstaining Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 16",
-  "cite": "L01 p.16"
+  "cite": "L01 slide 16"
  },
  {
   "lecture": "L01",
@@ -166,8 +214,11 @@
   "pages": [
    17
   ],
+  "labels": [
+   17
+  ],
   "text": "Constraints and format make success observable ✓ Scope What must the response cover? ✓ Audience Who will use or review it? ✓ Evidence Which sources are allowed? ✓ Limits Length, exclusions, and fallback ✓ Structure Fields, labels, or schema Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 17",
-  "cite": "L01 p.17"
+  "cite": "L01 slide 17"
  },
  {
   "lecture": "L01",
@@ -176,8 +227,11 @@
   "pages": [
    18
   ],
+  "labels": [
+   18
+  ],
   "text": "Check 2 · Repair a vague prompt [Document attached]. “Summarize this for me.” TASK Name the action and purpose. CONTEXT Supply the source passage. CONSTRAINTS Bound evidence, audience, and length. OUTPUT Specify observable structure. Discuss in two minutes; change all four parts without adding new facts. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 18",
-  "cite": "L01 p.18"
+  "cite": "L01 slide 18"
  },
  {
   "lecture": "L01",
@@ -186,8 +240,11 @@
   "pages": [
    19
   ],
+  "labels": [
+   19
+  ],
   "text": "A useful fallback beats “do not guess” Weak boundary Do not guess. Be accurate. Only answer if confident. Actionable fallback Return INSUFFICIENT_CONTEXT. Name the missing policy. Request the next evidence needed. → Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 19",
-  "cite": "L01 p.19"
+  "cite": "L01 slide 19"
  },
  {
   "lecture": "L01",
@@ -196,8 +253,11 @@
   "pages": [
    20
   ],
+  "labels": [
+   20
+  ],
   "text": "Prompt improvement is a controlled experiment Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 20 1 · FREEZE TEST CASES 2 · RUN PROMPT VERSION 3 · LABEL WITH ONE RUBRIC 4 · CHANGE ONE VARIABLE raw outputs + prompt IDs",
-  "cite": "L01 p.20"
+  "cite": "L01 slide 20"
  },
  {
   "lecture": "L01",
@@ -206,8 +266,11 @@
   "pages": [
    21
   ],
+  "labels": [
+   21
+  ],
   "text": "Different limitations require different tests Missing knowledge Can the evidence be retrieved or supplied? (weekend hours absent) Ambiguity Do reviewers agree on the intended task? ('Is downtown safe?') Inconsistency Do repeated runs preserve key decisions? (fee differs across runs) Bias Do outcomes differ across relevant groups? (tone shifts by requester name) Instruction failure Did the response follow the contract template? (prose returned, not JSON) Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 21",
-  "cite": "L01 p.21"
+  "cite": "L01 slide 21"
  },
  {
   "lecture": "L01",
@@ -216,8 +279,11 @@
   "pages": [
    22
   ],
+  "labels": [
+   22
+  ],
   "text": "Fluent wording is not evidence Readable? Is the language clear and coherent? Correct? Does the claim match reality or the task answer? Supported? Can the claim be traced to allowed evidence? 'The Mobility Office is open Saturday 09:00–17:00.' → Readable ✓· Correct ? · Supported ✗(excerpt silent). These are three separate judgments. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 22",
-  "cite": "L01 p.22"
+  "cite": "L01 slide 22"
  },
  {
   "lecture": "L01",
@@ -226,8 +292,11 @@
   "pages": [
    23
   ],
+  "labels": [
+   23
+  ],
   "text": "A hallucination is an unsupported generated claim HALLUCINATION an unsupported generated claim 01 What claim is present? 02 What evidence supports it? 03 Is that evidence allowed and sufficient? Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 23 SUPPORTED \"Permit costs USD 10 per academic year — fee line\" HALLUCINATION \"Office opens Saturday 09:00 — excerpt says hours omitted.\"",
-  "cite": "L01 p.23"
+  "cite": "L01 slide 23"
  },
  {
   "lecture": "L01",
@@ -236,8 +305,11 @@
   "pages": [
    24
   ],
+  "labels": [
+   24
+  ],
   "text": "Check 3 · Diagnose two polished answers Label each material claim: SUPPORTED · UNSUPPORTED · NOT CHECKABLE A “The bicycle permit costs USD 10 per academic year.” B “The Mobility Office is open Saturday 09:00– 17:00.” The excerpt supports A. It omits weekend hours, so B is unsupported. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 24",
-  "cite": "L01 p.24"
+  "cite": "L01 slide 24"
  },
  {
   "lecture": "L01",
@@ -246,8 +318,11 @@
   "pages": [
    25
   ],
+  "labels": [
+   25
+  ],
   "text": "Part B · A response can cross an evidence gap Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 25 LANGUAGE PATH \"Weekend hours?\" plausible continuation \"Open Sat 09:00–17:00\" EVIDENCE PATH \"policy excerpt — no weekend hours\" missing link EVIDENCE GAP",
-  "cite": "L01 p.25"
+  "cite": "L01 slide 25"
  },
  {
   "lecture": "L01",
@@ -256,8 +331,11 @@
   "pages": [
    26
   ],
+  "labels": [
+   26
+  ],
   "text": "Plausibility and truth are different objectives PLAUSIBLE Fits linguistic patterns Sounds likely to a reader May be produced without evidence PLAUSIBLE EXAMPLE \"Parking refunds are available within 30 days.\" VERIFIED Matches allowed evidence Survives an identified check Carries provenance or review VERIFIED EXAMPLE \"Permit fee is USD 10 per academic year — fee line.\" → Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 26",
-  "cite": "L01 p.26"
+  "cite": "L01 slide 26"
  },
  {
   "lecture": "L01",
@@ -266,8 +344,11 @@
   "pages": [
    27
   ],
+  "labels": [
+   27
+  ],
   "text": "Supplied evidence can constrain an answer Closed-context answer Use only the policy excerpt. Quote or name the supporting line. Abstain when the excerpt is silent. Open-ended recall Relies on model-learned patterns. Source and freshness may be unknown. Specific claims still need verification. → Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 27",
-  "cite": "L01 p.27"
+  "cite": "L01 slide 27"
  },
  {
   "lecture": "L01",
@@ -276,8 +357,11 @@
   "pages": [
    28
   ],
+  "labels": [
+   28
+  ],
   "text": "Diagnose before applying a remedy Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 28 Material claim? Allowed support? Contradiction? YES YES NOT CHECKABLE UNSUPPORTED SUPPORTED CONTRADICTED NO NO NO YES WORKED TRACE · 'USD 10 fee' → claim ✓→ support ✓→ no contradiction → SUPPORTED.",
-  "cite": "L01 p.28"
+  "cite": "L01 slide 28"
  },
  {
   "lecture": "L01",
@@ -286,8 +370,11 @@
   "pages": [
    29
   ],
+  "labels": [
+   29
+  ],
   "text": "Four conditions invite unsupported claims Ambiguity The requested judgment is undefined. \"Is campus safe at night?\" Unavailable evidence The necessary policy or record is missing. \"Weekend hours?\" Forced specificity The prompt demands an exact answer anyway. \"State the exact Saturday opening time.\" False premise The question embeds an unsupported assumption. \"Why did the fee double last year?\" Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 29",
-  "cite": "L01 p.29"
+  "cite": "L01 slide 29"
  },
  {
   "lecture": "L01",
@@ -296,8 +383,11 @@
   "pages": [
    30
   ],
+  "labels": [
+   30
+  ],
   "text": "Confident language is not calibrated evidence TONE ≠ SUPPORT “The office is definitely open Saturday.” 01 Strong wording can accompany support. 02 Strong wording can accompany invention. 03 Inspect the evidence path, not the adjective. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 30",
-  "cite": "L01 p.30"
+  "cite": "L01 slide 30"
  },
  {
   "lecture": "L01",
@@ -306,8 +396,11 @@
   "pages": [
    31
   ],
+  "labels": [
+   31
+  ],
   "text": "Verification effort should rise with consequence LOW Spot-check a reversible draft. MODERATE Check named sources and key claims. \"advice email citing policy lines\" HIGH Require qualified review or abstention. \"publishing fee amounts publicly\" Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 31 \"internal newsletter draft\"",
-  "cite": "L01 p.31"
+  "cite": "L01 slide 31"
  },
  {
   "lecture": "L01",
@@ -316,8 +409,11 @@
   "pages": [
    32
   ],
+  "labels": [
+   32
+  ],
   "text": "A small fixed test set beats prompt folklore Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 32 6 FIXED QUESTIONS e.g., q01 'Permit fee?' · q04 'Weekend hours?' (expects abstention). PROMPT A baseline PROMPT B structured SAME RUBRIC support abstention failure COMPARISON TABLE Stable inputs + stable labels make the difference inspectable.",
-  "cite": "L01 p.32"
+  "cite": "L01 slide 32"
  },
  {
   "lecture": "L01",
@@ -326,8 +422,11 @@
   "pages": [
    33
   ],
+  "labels": [
+   33
+  ],
   "text": "Abstention can be the most useful response 1 · STATE Evidence is insufficient. 2 · AVOID Do not invent a claim or action. 3 · REQUEST Name the missing policy, record, or reviewer. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 33 EXAMPLE OUTPUT · INSUFFICIENT_CONTEXT — excerpt omits weekend hours; needed: official hours policy or dated source.",
-  "cite": "L01 p.33"
+  "cite": "L01 slide 33"
  },
  {
   "lecture": "L01",
@@ -336,8 +435,11 @@
   "pages": [
    34
   ],
+  "labels": [
+   34
+  ],
   "text": "Match autonomy to consequence and verifiability Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 34 DO NOT AUTOMATE REQUIRE REVIEW ASSIST DRAFT CONSEQUENCE ↑ VERIFIABILITY → \"legal/medical advice\" \"public fee announcement\" \"staff policy summary\" \"newsletter first draft\"",
-  "cite": "L01 p.34"
+  "cite": "L01 slide 34"
  },
  {
   "lecture": "L01",
@@ -346,8 +448,11 @@
   "pages": [
    35
   ],
+  "labels": [
+   35
+  ],
   "text": "Paper 1 · Can examples elicit multi-step reasoning? Wei et al. · NeurIPS 2022 · arXiv:2201.11903 · DOI:10.52202/068431-1800 RESEARCH QUESTION Do worked reasoning demonstrations improve performance on multi-step tasks? METHOD Few-shot chain-of-thought exemplars across arithmetic, commonsense, and symbolic tasks. BOUNDARY Historical tested models and prompts; generated reasoning is not certified as faithful. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 35",
-  "cite": "L01 p.35"
+  "cite": "L01 slide 35"
  },
  {
   "lecture": "L01",
@@ -356,8 +461,11 @@
   "pages": [
    36
   ],
+  "labels": [
+   36
+  ],
   "text": "Reasoning prompts help some tasks but do not certify truth 17.9% → 56.9% PaLM 540B · GSM8K · standard to eight-shot CoT READ WITH LIMITS +39.0 percentage points No fine-tuning Greedy decoding One historical task/model condition Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 36",
-  "cite": "L01 p.36"
+  "cite": "L01 slide 36"
  },
  {
   "lecture": "L01",
@@ -366,8 +474,11 @@
   "pages": [
    37
   ],
+  "labels": [
+   37
+  ],
   "text": "Paper 2 · TruthfulQA targets learned misconceptions Lin, Hilton, & Evans · ACL 2022 · arXiv:2109.07958 · DOI:10.18653/v1/2022.acl-long.229 RESEARCH QUESTION Will models reproduce common false beliefs when questions are adversarially written? METHOD 817 author-written zero-shot questions across 38 categories; truth and informativeness scored separately. BOUNDARY Stress test, not a representative sample of everyday queries. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 37",
-  "cite": "L01 p.37"
+  "cite": "L01 slide 37"
  },
  {
   "lecture": "L01",
@@ -376,8 +487,11 @@
   "pages": [
    38
   ],
+  "labels": [
+   38
+  ],
   "text": "TruthfulQA exposes a historical truthfulness gap 58% vs 94% Best tested baseline vs one human participant READ WITH LIMITS 817 questions · 38 categories Human: 250-question subset Internet access allowed Historical 2022 tested systems Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 38",
-  "cite": "L01 p.38"
+  "cite": "L01 slide 38"
  },
  {
   "lecture": "L01",
@@ -386,8 +500,11 @@
   "pages": [
    39
   ],
+  "labels": [
+   39
+  ],
   "text": "Paper 3 · Scale creates system-level limitations Bender et al. · ACM FAccT 2021 · DOI:10.1145/3442188.3445922 RESEARCH QUESTION What risks are hidden when progress is defined primarily as scaling models and web data? METHOD Critical synthesis and recommendations, not a new controlled experiment. BOUNDARY Attribute its claims as the authors’ sociotechnical and theoretical argument. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 39",
-  "cite": "L01 p.39"
+  "cite": "L01 slide 39"
  },
  {
   "lecture": "L01",
@@ -396,8 +513,11 @@
   "pages": [
    40
   ],
+  "labels": [
+   40
+  ],
   "text": "Responsible design considers data, users, and consequences DATA Who is represented, missing, or exposed? CAPSTONE · \"policy docs only — no resident records\" USERS Who benefits, reviews, and bears failure? CAPSTONE · \"students/staff; they bear wrong-permit errors\" CONSEQUENCES What can the output change, and can it be reversed? CAPSTONE · \"missed deadline — reversible via appeal path?\" Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 40",
-  "cite": "L01 p.40"
+  "cite": "L01 slide 40"
  },
  {
   "lecture": "L01",
@@ -406,8 +526,11 @@
   "pages": [
    41
   ],
+  "labels": [
+   41
+  ],
   "text": "One helper makes prompt trials reproducible def run_experiment(client, output_path): rows = list() for condition in CONDITIONS: for case in CASES: prompt = build_prompt(condition, case) response = client.generate( condition=condition, case=case, prompt=prompt, ) rows.append(score_and_log(...)) Record the experiment • fixed cases • named condition • model identifier • full prompt • raw response • support label Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 41",
-  "cite": "L01 p.41"
+  "cite": "L01 slide 41"
  },
  {
   "lecture": "L01",
@@ -416,8 +539,11 @@
   "pages": [
    42
   ],
+  "labels": [
+   42
+  ],
   "text": "Prompt cases make the test set explicit @dataclass(frozen=True) class PromptCase: case_id: str question: str expected_answer: str | None CASES = ( PromptCase(\"q01\", \"Permit fee?\", \"USD 10...\"), PromptCase(\"q04\", \"Weekend hours?\", None), PromptCase(\"q05\", \"Parking refund?\", None), ) Six fixed questions • 3 supported • 3 intentionally missing • same order per condition • sanitized fictional policy Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 42",
-  "cite": "L01 p.42"
+  "cite": "L01 slide 42"
  },
  {
   "lecture": "L01",
@@ -426,8 +552,11 @@
   "pages": [
    43
   ],
+  "labels": [
+   43
+  ],
   "text": "Zero-shot states task, context, constraints, and format contract = f\"\"\"Task: Answer using only the excerpt. Context: {CONTEXT} Constraints: - Do not add absent facts. - If evidence is insufficient, return INSUFFICIENT_CONTEXT and name what is missing. Output: JSON with answer, support, and uncertainty. Question: {case.question}\"\"\" Prompt contract • task • complete excerpt • evidence boundary • fallback • observable JSON Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 43",
-  "cite": "L01 p.43"
+  "cite": "L01 slide 43"
  },
  {
   "lecture": "L01",
@@ -436,8 +565,11 @@
   "pages": [
    44
   ],
+  "labels": [
+   44
+  ],
   "text": "Few-shot adds supported and abstaining examples examples = \"\"\"Examples: Q: What is the permit fee? A: {\"answer\":\"USD 10...\",\"support\":\"fee line\"} Q: What are weekend hours? A: {\"answer\":\"INSUFFICIENT_CONTEXT\", \"support\":\"none\"} \"\"\" return f\"{examples}\\n{contract}\" Demonstrate two paths • answer when supported • abstain when silent • reuse the same contract • do not change the cases Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 44",
-  "cite": "L01 p.44"
+  "cite": "L01 slide 44"
  },
  {
   "lecture": "L01",
@@ -446,8 +578,11 @@
   "pages": [
    45
   ],
+  "labels": [
+   45
+  ],
   "text": "A provider boundary keeps the experiment portable class LLMClient(Protocol): model_id: str def generate(self, *, condition, case, prompt) -> str: ... class FixtureClient: model_id = \"offline-fixture-v1\" class OllamaClient: model_id = \"qwen3:4b\" Two paths • fixture required • Ollama optional • same prompt interface • same experiment record Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 45",
-  "cite": "L01 p.45"
+  "cite": "L01 slide 45"
  },
  {
   "lecture": "L01",
@@ -456,8 +591,11 @@
   "pages": [
    46
   ],
+  "labels": [
+   46
+  ],
   "text": "Run every condition through the same \"harness\" for condition in ( \"baseline\", \"zero_shot\", \"few_shot\" ): for case in CASES: prompt = build_prompt(condition, case) response = client.generate( condition=condition, case=case, prompt=prompt, ) supported, abstained, label = score(...) Controlled comparison • same six cases • same order • same scorer • one prompt condition changes Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 46",
-  "cite": "L01 p.46"
+  "cite": "L01 slide 46"
  },
  {
   "lecture": "L01",
@@ -466,8 +604,11 @@
   "pages": [
    47
   ],
+  "labels": [
+   48
+  ],
   "text": "The failure log becomes evidence for revision {\"case_id\":\"q04\", \"condition\":\"baseline\", \"model_id\":\"offline-fixture-v1\", \"response\":\"The office is open Saturday from 09:00 to 17:00.\", \"supported\":false, \"abstained\":false, \"failure_label\":\"unsupported_claim\"} # One JSON object per line Review one claim • question lacks hours • response invents a time • support check fails • raw text is preserved Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 48",
-  "cite": "L01 p.47"
+  "cite": "L01 slide 48"
  },
  {
   "lecture": "L01",
@@ -476,8 +617,11 @@
   "pages": [
    48
   ],
+  "labels": [
+   49
+  ],
   "text": "Lab · Build a prompt baseline and failure log Compare baseline, zero-shot, and few-shot prompts on one unchanged six-question policy set. 01 Run the fixture 02 Inspect prompts and raw outputs 03 Label support and abstention 04 Make one controlled revision Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 49",
-  "cite": "L01 p.48"
+  "cite": "L01 slide 49"
  },
  {
   "lecture": "L01",
@@ -486,8 +630,11 @@
   "pages": [
    49
   ],
+  "labels": [
+   50
+  ],
   "text": "Run three prompt conditions BASELINE Question only ZERO-SHOT Task + context + constraints + output FEW-SHOT Two examples + the same contract Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 50",
-  "cite": "L01 p.49"
+  "cite": "L01 slide 50"
  },
  {
   "lecture": "L01",
@@ -496,8 +643,11 @@
   "pages": [
    50
   ],
+  "labels": [
+   51
+  ],
   "text": "Label every answer with the same rubric ✓ Instruction Did it follow the requested behavior? ✓ Relevant Does it answer the actual question? ✓ Supported Can material claims trace to the excerpt? ✓ Abstained Did it refuse when evidence was missing? Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 51",
-  "cite": "L01 p.50"
+  "cite": "L01 slide 51"
  },
  {
   "lecture": "L01",
@@ -506,8 +656,11 @@
   "pages": [
    51
   ],
+  "labels": [
+   52
+  ],
   "text": "Submit evidence trials.jsonl Raw records from the fixture run best prompt Named prompt ID and one controlled change 2 annotations Failure or abstention records 150-word memo Observed outcome and evidence limits Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 52",
-  "cite": "L01 p.51"
+  "cite": "L01 slide 52"
  },
  {
   "lecture": "L01",
@@ -516,8 +669,11 @@
   "pages": [
    52
   ],
+  "labels": [
+   53
+  ],
   "text": "Anti-pattern · Fluent output is treated as verified ANTI-PATTERN “It reads professionally, so it must be right.” → REPAIR Extract material claims and trace each to allowed evidence. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 53",
-  "cite": "L01 p.52"
+  "cite": "L01 slide 53"
  },
  {
   "lecture": "L01",
@@ -526,8 +682,11 @@
   "pages": [
    53
   ],
+  "labels": [
+   54
+  ],
   "text": "Anti-pattern · The prompt changes faster than the test ANTI-PATTERN “This version feels better on today’s example.” → REPAIR Freeze cases, name prompt versions, and change one variable. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 54",
-  "cite": "L01 p.53"
+  "cite": "L01 slide 54"
  },
  {
   "lecture": "L01",
@@ -536,8 +695,11 @@
   "pages": [
    54
   ],
+  "labels": [
+   55
+  ],
   "text": "Anti-pattern · The model is forced to answer ANTI-PATTERN “Always provide a specific answer. Never say you don’t know.” → REPAIR \"If the excerpt lacks the answer, return INSUFFICIENT_CONTEXT and name the missing policy.\" Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 55",
-  "cite": "L01 p.54"
+  "cite": "L01 slide 55"
  },
  {
   "lecture": "L01",
@@ -546,8 +708,11 @@
   "pages": [
    55
   ],
+  "labels": [
+   56
+  ],
   "text": "Small quizzes 1 · A generator primarily… A verifies facts B predicts plausible continuations C queries a database 2 · Few-shot prompting… A includes examples B only adds length C guarantees truth 3 · A hallucination is… A surprising text B an unsupported generated claim C a grammar error 4 · Most testable instruction? A Help B Be creative C classify using the supplied rule 5 · High-consequence unsupported claim? A publish B trust tone C verify or abstain Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 56",
-  "cite": "L01 p.55"
+  "cite": "L01 slide 56"
  },
  {
   "lecture": "L01",
@@ -556,8 +721,11 @@
   "pages": [
    56
   ],
+  "labels": [
+   59
+  ],
   "text": "Key takeaways 1 Generative AI produces plausible continuations, so only fluency does not establish truth. 2 A useful prompt states the task, relevant context, constraints, and desired output. 3 Zero-shot prompts begin with instructions, while few-shot prompts add examples that demonstrate the target behavior. 4 A hallucination is an unsupported generated claim, so consequential claims require verification or abstention. 5 Responsible applications define a bounded user need, explicit non-goals, and a repeatable evaluation method. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 59",
-  "cite": "L01 p.56"
+  "cite": "L01 slide 59"
  },
  {
   "lecture": "L01",
@@ -566,8 +734,11 @@
   "pages": [
    57
   ],
+  "labels": [
+   60
+  ],
   "text": "References I · Prompting and truthfulness 01 Wei, J., Wang, X., Schuurmans, D., et al. (2022). Chain-of-thought prompting elicits reasoning in large language models. Advances in Neural Information Processing Systems, 35. https://doi.org/10.52202/068431-1800 · arXiv:2201.11903 02 Lin, S., Hilton, J., & Evans, O. (2022). TruthfulQA: Measuring how models mimic human falsehoods. Proceedings of ACL 2022, 3214–3252. https://doi.org/10.18653/v1/2022.acl-long.229 · arXiv:2109.07958 Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 60",
-  "cite": "L01 p.57"
+  "cite": "L01 slide 60"
  },
  {
   "lecture": "L01",
@@ -576,8 +747,11 @@
   "pages": [
    58
   ],
+  "labels": [
+   61
+  ],
   "text": "References II · System limitations and course text 01 Bender, E. M., Gebru, T., McMillan-Major, A., & Shmitchell, S. (2021). On the dangers of stochastic parrots: Can language models be too big? Proceedings of FAccT ’21, 610–623. https://doi.org/10.1145/3442188.3445922 02 Alammar, J., & Grootendorst, M. (2024). Hands-On Large Language Models. O’Reilly Media. Chapter 1: An Introduction to Large Language Models; Chapter 6: Prompt Engineering. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 61",
-  "cite": "L01 p.58"
+  "cite": "L01 slide 61"
  },
  {
   "lecture": "L01",
@@ -586,7 +760,10 @@
   "pages": [
    59
   ],
+  "labels": [
+   62
+  ],
   "text": "References III · Application engineering and technical docs 01 Auffarth, B., & Kuligin, M. (2025). Generative AI with LangChain (2nd ed.). Packt. Chapter 1: The Rise of Generative AI: From Language Models to Agents. 02 Huyen, C. (2025). AI Engineering: Building Applications with Foundation Models. O’Reilly Media. Chapter 5: Prompt Engineering. 03 OpenAI. (2026). Responses API reference and GPT-5.6 Luna model documentation. Retrieved August 28, 2026. 04 Python Software Foundation. (2026). Python 3.13.12 release. Qwen Team and Ollama. (2026). Qwen3-4B and qwen3:4b model records. Lesson 01 — Generative AI Systems: Uses, Prompts, and Limits 62",
-  "cite": "L01 p.59"
+  "cite": "L01 slide 62"
  }
 ]

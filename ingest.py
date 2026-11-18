@@ -31,14 +31,49 @@ def clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def cite_tag(lec: str, pages: list) -> str:
-    return f"{lec} p.{pages[0]}" if len(pages) == 1 else f"{lec} p.{pages[0]}-{pages[-1]}"
+def cite_tag(lec: str, pages: list, labels: list | None = None) -> str:
+    """'L01 slide 59' when the slides print their own numbers, otherwise 'L01 p.56' (PDF page)."""
+    if labels and all(n is not None for n in labels):
+        nums, word = labels, "slide "
+    else:
+        nums, word = pages, "p."
+    return f"{lec} {word}{nums[0]}" if len(nums) == 1 else f"{lec} {word}{nums[0]}-{nums[-1]}"
 
 
 def combine(a: dict, b: dict) -> dict:
     pages = a["pages"] + b["pages"]
-    return {**a, "pages": pages, "text": (a["text"] + " " + b["text"]).strip(),
-            "cite": cite_tag(a["lecture"], pages)}
+    labels = a.get("labels", [None] * len(a["pages"])) + b.get("labels", [None] * len(b["pages"]))
+    return {**a, "pages": pages, "labels": labels,
+            "text": (a["text"] + " " + b["text"]).strip(),
+            "cite": cite_tag(a["lecture"], pages, labels)}
+
+
+def printed_number(page) -> int | None:
+    """The slide number printed in the page's footer, if any. Takes the right-most number,
+    so 'Lesson 01 ... 59' gives 59; '12 / 40' gives 12. (Headers are ignored: titles like
+    'Step 1', 'Step 2' would look like slide numbers.)"""
+    height = page.rect.height
+    words = page.get_text("words")
+    for top, bottom in ((0.85, 1.01),):  # bottom 15% of the page
+        band = sorted((w for w in words if top * height <= w[1] < bottom * height),
+                      key=lambda w: w[0])
+        m = re.search(r"(\d{1,3})\s*/\s*\d{1,3}$", " ".join(w[4] for w in band))
+        if m:
+            return int(m.group(1))
+        digits = [w for w in band if re.fullmatch(r"\d{1,3}", w[4])]
+        if digits:
+            return int(max(digits, key=lambda w: w[0])[4])
+    return None
+
+
+def slide_labels(doc) -> list:
+    """Printed slide numbers for every page, or all None if they don't look reliable.
+    Exported decks often skip numbers (hidden slides), so PDF page 56 can be slide 59."""
+    nums = [printed_number(p) for p in doc]
+    found = [n for n in nums if n is not None]
+    reliable = (len(found) >= 3 and len(found) >= 0.7 * len(nums) and found[0] >= 1
+                and all(a < b for a, b in zip(found, found[1:])))
+    return nums if reliable else [None] * len(nums)
 
 
 def open_pdf(ref: str, data: bytes | None = None):
@@ -57,11 +92,15 @@ def extract_slides(ref: str, data: bytes | None = None, lec: str | None = None) 
     lec = lec or auto_lec
     slides = []
     with open_pdf(ref, data) as doc:
+        labels = slide_labels(doc)
         for page_no, page in enumerate(doc, start=1):
+            label = labels[page_no - 1]
             slides.append({
                 "lecture": lec, "title": title, "pdf": ref,
-                "pages": [page_no], "text": clean(page.get_text()),
-                "cite": cite_tag(lec, [page_no]),
+                "pages": [page_no],    # position in the PDF (used to render the image)
+                "labels": [label],     # number printed on the slide, None if unknown
+                "text": clean(page.get_text()),
+                "cite": cite_tag(lec, [page_no], [label]),
             })
     return slides
 

@@ -18,3 +18,11 @@
 {"id": "q18", "type": "out-of-scope", "question": "How does the transformer attention mechanism compute its weights?", "expected": []}
 {"id": "q19", "type": "out-of-scope", "question": "What are the Mobility Office's weekend opening hours?", "expected": []}
 {"id": "q20", "type": "out-of-scope", "question": "LoRA 파인튜닝은 어떻게 동작하나요?", "expected": []}
+{"id": "q21", "type": "korean", "question": "환각이란 무엇인가요?", "expected": ["L01:23", "L01:56"], "reference": "A hallucination is an unsupported generated claim."}
+{"id": "q22", "type": "korean", "question": "프롬프트의 네 가지 구성 요소는 무엇인가요?", "expected": ["L01:13", "L01:18"], "reference": "Task (what operation), context (what evidence), constraints (what boundaries), and output (what observable form)."}
+{"id": "q23", "type": "korean", "question": "제로샷 프롬프팅과 퓨샷 프롬프팅의 차이는 무엇인가요?", "expected": ["L01:15", "L01:16", "L01:56"], "reference": "Zero-shot prompting gives one explicit instruction with no demonstrations; few-shot prompting adds examples that demonstrate the target behavior, including both answering and abstaining."}
+{"id": "q24", "type": "korean", "question": "실습에서 학생들은 무엇을 제출해야 하나요?", "expected": ["L01:51"], "reference": "trials.jsonl raw records, the best prompt with its ID and one controlled change, 2 failure or abstention annotations, and a 150-word memo."}
+{"id": "q25", "type": "korean", "question": "근거 없는 주장을 유도하는 네 가지 조건은 무엇인가요?", "expected": ["L01:29"], "reference": "Ambiguity, unavailable evidence, forced specificity, and false premise."}
+{"id": "q26", "type": "korean", "question": "결과의 중요도에 따라 검증 수준은 어떻게 달라지나요?", "expected": ["L01:31", "L01:34"], "reference": "Low consequence: spot-check a reversible draft; moderate: check named sources and key claims; high: require qualified review or abstention."}
+{"id": "q27", "type": "out-of-scope", "question": "호주의 수도는 어디인가요?", "expected": []}
+{"id": "q28", "type": "out-of-scope", "question": "이 과목의 기말고사는 언제인가요?", "expected": []}
