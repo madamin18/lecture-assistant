@@ -313,11 +313,11 @@ mode = st.segmented_control("Mode", [ASK, PRACTICE, BROWSE], required=True, key=
 
 # ======================= Ask =======================
 def trace_label(t: dict) -> str:
+    if t.get("cached"):
+        return f"Searched {t['n_slides']} slides · saved answer, shown instantly"
     label = f"Searched {t['n_slides']} slides in {t['search_s']:.1f} s"
     if t.get("model"):
         label += f" · answered in {t['answer_s']:.1f} s"
-    if t.get("cached"):
-        label += " · saved answer, shown instantly"
     return label
 
 

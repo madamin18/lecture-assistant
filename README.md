@@ -44,7 +44,13 @@ lecture title shown in the app.
 python ingest.py                     # build the index (re-run whenever slides change)
 python rag.py "What is RAG?"         # quick test in the terminal
 python -m streamlit run app.py       # website at http://localhost:8501
+python warm_cache.py                 # prepare instant answers for the demo questions
 ```
+`warm_cache.py` stores answers for the starter questions and the demo path in
+`index/answer_cache.json`; the site shows them instantly (and they still work if the AI service
+is busy). They are ignored automatically once the index is rebuilt; re-run the script then. The
+site also remembers every chat's first question while it runs, so repeated questions are
+instant too. Follow-up questions are always answered fresh.
 
 ## How it works
 1. **Ingest** (`ingest.py`): one chunk per slide; slides with under 80 characters (titles,
@@ -162,6 +168,24 @@ use the Mobility Office as an example, and the model replies that the slides don
 weekend hours, just not with the exact refusal sentence the evaluation checks for. q13 ("What
 must students submit for the lab?") went from a retrieval miss to a correct answer thanks to
 keyword search.
+
+### Practice question quality
+`python eval_quiz.py` generates a 5-question quiz for every lecture plus one in Korean (50
+questions) and checks each against the slide it cites (results: `eval/quiz_quality.json`,
+every question: `eval/quiz_results.jsonl`).
+
+| Check (50 questions, Nov 18) | Result |
+|---|---|
+| Answerable from the cited slide | 100% |
+| Marked answer correct | 100% |
+| Multiple choice with exactly one correct option (41 questions) | 100% |
+| Clear and well formed | 100% |
+| Correct option position after shuffling (A/B/C/D) | 8 / 12 / 10 / 11 |
+| Average time per 5-question quiz | 7.8 s |
+
+The checker is the same model family as the generator, so these are estimates; a manual check
+of 6 random questions agreed. Most questions test recall of a slide, and some wrong options are
+too easy, which the checks above don't measure.
 
 ## Deploy
 1. Push this folder to GitHub, **including `index/` and `data/slides/`**.
