@@ -1,0 +1,16 @@
+{
+  "name": "improved_v1",
+  "k": 5,
+  "min_score": 0.78,
+  "n_in_scope": 15,
+  "n_out_of_scope": 5,
+  "n_busy_skipped": 0,
+  "hybrid_search": true,
+  "retrieval_hit@5_%": 100.0,
+  "retrieval_mrr": 0.867,
+  "citation_accuracy_%": 100.0,
+  "false_refusal_%": 0.0,
+  "correct_refusal_%": 80.0,
+  "answer_correct_%": 93.3,
+  "answer_partial_%": 6.7
+}
