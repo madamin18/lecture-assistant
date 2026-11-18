@@ -165,7 +165,31 @@ for m in st.session_state.messages:
         if m.get("hits"):
             show_sources(m["content"], m["hits"])
 
-if question := st.chat_input("Ask a question about the slides"):
+# One-click starter questions for the demo slides (hidden once the chat starts).
+DEMO_QUESTIONS = {
+    ":material/help: What is a hallucination?": "What is a hallucination?",
+    ":material/compare_arrows: Zero-shot vs few-shot prompting":
+        "What is the difference between zero-shot and few-shot prompting?",
+    ":material/list: Four parts of a prompt": "What are the four parts of a prompt?",
+}
+
+def use_suggestion():
+    # Turn the clicked chip into a question, then unselect it so "Clear chat" shows it again.
+    st.session_state.pending_question = DEMO_QUESTIONS[st.session_state.demo_pick]
+    st.session_state.demo_pick = None
+
+
+question = (st.chat_input("Ask a question about the slides")
+            or st.session_state.pop("pending_question", None))
+
+if not files and not st.session_state.messages:
+    suggestions = st.empty()
+    suggestions.pills("Try asking:", list(DEMO_QUESTIONS), key="demo_pick",
+                      on_change=use_suggestion)
+    if question:
+        suggestions.empty()  # hide the chips before the first answer renders
+
+if question:
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)
