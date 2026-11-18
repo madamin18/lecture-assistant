@@ -204,10 +204,18 @@ class SlideRAG:
         return (reply if reply is not None else config.BUSY_MESSAGE), hits
 
     # ---------- LLM calls with fallback ----------
-    def _models(self) -> list:
+    def _attempts(self):
+        """Yields the models to try, in order. If every model failed quickly (rate limit or
+        'overloaded' replies, not slow timeouts), waits 2 s and tries them all once more, since
+        those errors often clear within seconds."""
         models = list(dict.fromkeys([config.LLM_MODEL] + config.FALLBACK_MODELS))
         ready = [m for m in models if _cooldown_until.get(m, 0) <= time.time()]
-        return ready or models  # everything cooling down: try them all anyway
+        start = time.time()
+        yield from ready or models  # everything cooling down: try them all anyway
+        if time.time() - start < 10:
+            time.sleep(2)
+            # soonest-available first: a rate-limited model before an overloaded one
+            yield from sorted(models, key=lambda m: _cooldown_until.get(m, 0))
 
     def _failed(self, model: str, e: Exception):
         status = getattr(e, "status_code", "timeout/connection")
@@ -222,7 +230,7 @@ class SlideRAG:
         """Call the main model, falling back to the others. Returns None if all are busy.
         kwargs go to the API (e.g. temperature, response_format, timeout)."""
         kwargs.setdefault("temperature", 0)
-        for model in self._models():
+        for model in self._attempts():
             try:
                 resp = self.client.chat.completions.create(model=model, messages=messages, **kwargs)
                 self.last_model = model
@@ -235,7 +243,7 @@ class SlideRAG:
         """Like chat(), but yields the answer piece by piece as it is written.
         Falls back to the next model if one fails before writing anything."""
         self.last_model = None
-        for model in self._models():
+        for model in self._attempts():
             try:
                 chunks = iter(self.client.chat.completions.create(
                     model=model, messages=messages, temperature=0, stream=True))
