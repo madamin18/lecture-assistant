@@ -202,6 +202,7 @@ class SlideRAG:
         self.model = embedder or SentenceTransformer(config.EMBED_MODEL)
         self.client = client or make_client()
         self.last_model = None  # which model produced the last answer
+        self.last_search = {}    # what the last search did (translation, lectures searched)
 
     @property
     def lectures(self) -> list:
@@ -213,10 +214,11 @@ class SlideRAG:
 
     # ---------- search ----------
     def retrieve(self, question: str, k: int = config.TOP_K, previous: str | None = None,
-                 translation: str | None = None) -> list:
+                 translation: str | None = None, only=None) -> list:
         """Top-k slides. `previous` = the student's previous question, used so follow-ups like
         "explain that more simply" still find the right slides. `translation` = the question in
-        the slides' language (see translate()).
+        the slides' language (see translate()). `only` = lecture tags to search (e.g. a filter
+        chosen in the UI); a lecture named in the question takes precedence.
         Each hit's "score" is the meaning-based (cosine) similarity, used for the refusal check."""
         if not self.chunks:
             return []
@@ -236,31 +238,37 @@ class SlideRAG:
             fused = dense
         # A question that names a lecture ("the Lesson 1 lab", "3강") searches only that lecture.
         named = mentioned_lectures(f"{question} {translation or ''}", self.lecture_tags)
-        if named:
-            fused = np.where(np.isin(self.chunk_lectures, list(named)), fused, -np.inf)
+        allowed = named or ({t for t in only if t in self.lecture_tags} if only else set())
+        if allowed:
+            fused = np.where(np.isin(self.chunk_lectures, list(allowed)), fused, -np.inf)
+        self.last_search["lectures"] = sorted(allowed)
+        self.last_search["named"] = bool(named)
         top = np.argsort(-fused)[:k]
         return [{**self.chunks[i], "score": float(dense[i])} for i in top]
 
-    def search(self, question: str, k: int = config.TOP_K, previous: str | None = None):
+    def search(self, question: str, k: int = config.TOP_K, previous: str | None = None,
+               only=None):
         """retrieve(), first translating the question if it isn't in the slides' language.
         Returns (hits, min_score): the similarity needed to answer instead of refusing."""
         translation = None
         cross_language = language(question) != self.slide_lang
         if cross_language and config.TRANSLATE_QUERIES:
             translation = self.translate(question, previous)
-        hits = self.retrieve(question, k, previous, translation)
+        self.last_search = {"translation": translation}
+        hits = self.retrieve(question, k, previous, translation, only)
         # Untranslated cross-language questions score lower, so don't refuse them on score alone;
         # the prompt's refusal rule still applies.
         return hits, (0 if cross_language and not translation else config.MIN_SCORE)
 
     # ---------- answering ----------
-    def prepare(self, question: str, k: int = config.TOP_K, history: list | None = None):
+    def prepare(self, question: str, k: int = config.TOP_K, history: list | None = None,
+                only=None):
         """Search and build the LLM messages. Returns (messages, hits); messages is None when
         no slide is close enough, so the caller should refuse without calling the LLM.
         history = earlier chat as [{"role": "user"|"assistant", "content": ...}]."""
         history = [m for m in (history or []) if m.get("content")][-4:]  # last 2 exchanges
         previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
-        hits, min_score = self.search(question, k, previous)
+        hits, min_score = self.search(question, k, previous, only)
         if not hits or max(h["score"] for h in hits) < min_score:
             return None, hits
 

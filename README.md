@@ -15,14 +15,20 @@ Preloaded with all 9 lectures of *Design of Generative AI Application Systems* (
 Only the slide PDFs are published; the lab handouts, readings and quiz keys from the course
 packages are not.
 
-Two modes:
-- **Ask a question** (English or 한국어): chat with the lecture slides. Every answer cites slides
-  like `[L01 slide 14]` and shows the slide images, so students can check the source.
-- **Practice exam**: generates exam-style questions (multiple choice and/or short answer) from
-  the slides, in English, Korean or the slides' language. Students answer, click
-  **Check answers**, and see the correct answer, an explanation and the slide it came from.
-  Questions can focus on a topic and be downloaded as a printable study sheet (questions first,
-  answer key at the end).
+Three tabs:
+- **Ask** (English or 한국어): chat with the lecture slides. Each answer shows how it was found
+  (translation, hybrid search, which model answered, timings), the cited slides as images, a
+  relevance table of the other slides searched, thumbs up/down, and "Ask next" follow-ups built
+  from the other slides found. The sidebar can limit the search to chosen lectures.
+- **Practice exam**: exam-style questions (multiple choice and/or short answer) from the slides,
+  in English, Korean or the slides' language. Picking an answer shows right away whether it is
+  correct, with an explanation and the source slide; short answers reveal a model answer and
+  the student grades themselves. A live score and progress bar, balloons at 80%+, "Try again",
+  and a printable study sheet (questions first, answer key at the end).
+- **Browse lectures**: a card per lecture with its cover slide, a slide viewer, and shortcuts to
+  ask about a slide, search one lecture, or get a 5-question quiz on it.
+
+Styling lives in `.streamlit/config.toml` (light and dark theme, fonts, radii); no custom CSS.
 
 ## Setup
 ```bash

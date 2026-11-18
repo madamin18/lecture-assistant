@@ -1,3 +1,45 @@
 [server]
 # Max size of one uploaded PDF, in MB.
 maxUploadSize = 50
+
+# ---------- Look and feel (light and dark mode; users can switch in the ⋮ menu) ----------
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "'Space Grotesk':https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap"
+headingFontWeights = [700, 650, 600]
+baseRadius = "large"
+buttonRadius = "full"
+showSidebarBorder = false
+
+[theme.light]
+primaryColor = "#6d28d9"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f5f3ff"
+textColor = "#1e1b4b"
+linkColor = "#6d28d9"
+borderColor = "#e4e0f7"
+
+[theme.light.sidebar]
+backgroundColor = "#1e1b4b"
+secondaryBackgroundColor = "#2e2a6b"
+textColor = "#eef2ff"
+borderColor = "#433d8f"
+primaryColor = "#a78bfa"
+linkColor = "#c4b5fd"
+codeBackgroundColor = "#2e2a6b"
+
+[theme.dark]
+primaryColor = "#8b5cf6"
+backgroundColor = "#0f0c24"
+secondaryBackgroundColor = "#1a1638"
+textColor = "#ede9fe"
+linkColor = "#c4b5fd"
+borderColor = "#2e2a55"
+
+[theme.dark.sidebar]
+backgroundColor = "#141033"
+secondaryBackgroundColor = "#221d4a"
+textColor = "#ede9fe"
+borderColor = "#3a3470"
+primaryColor = "#a78bfa"
+linkColor = "#c4b5fd"
