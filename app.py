@@ -10,6 +10,8 @@ never saved on the server). With no uploads, the site uses the demo slides in in
 (built by ingest.py).
 """
 import hashlib
+import importlib
+import time
 from pathlib import Path
 
 import streamlit as st
@@ -17,8 +19,37 @@ from openai import APIStatusError
 from sentence_transformers import SentenceTransformer
 
 import config
-from ingest import build_index, page_count
-from rag import SlideRAG, cited_hits, make_client, render_page
+import ingest
+import rag as rag_module
+
+
+def code_version() -> str:
+    """Fingerprint of the search/answer code and settings."""
+    h = hashlib.sha1()
+    for name in ("rag.py", "config.py", "ingest.py"):
+        h.update(Path(__file__).with_name(name).read_bytes())
+    return h.hexdigest()[:12]
+
+
+def load_code() -> str:
+    """A deploy that only changes rag.py / config.py / ingest.py doesn't restart the server, and
+    Python keeps running the old modules (rag.py keeps reading the old config). Whenever the
+    files differ from what is loaded, reload them in dependency order. Returns an id that
+    changes on every reload; cached objects below take it as an argument, so new code always
+    gets new objects (also when a change is reverted)."""
+    version = code_version()
+    if getattr(rag_module, "LOADED_VERSION", None) != version:
+        for module in (config, ingest, rag_module):
+            importlib.reload(module)
+        rag_module.LOADED_VERSION = version
+        rag_module.LOAD_ID = f"{version}-{time.time_ns()}"
+    return rag_module.LOAD_ID
+
+
+VERSION = load_code()
+
+from ingest import build_index, page_count  # noqa: E402  (imported after the reload on purpose)
+from rag import SlideRAG, cited_hits, make_client, render_page  # noqa: E402
 
 st.set_page_config(page_title="Lecture Notes Assistant", page_icon="📚")
 
@@ -29,20 +60,21 @@ if not config.LLM_API_KEY:
 
 
 # ---------- shared by all visitors (loaded once per server) ----------
+# Cached objects take VERSION (from load_code) as an argument, so new code gets new objects.
 @st.cache_resource(show_spinner="Loading the search model…")
 def load_embedder():
     return SentenceTransformer(config.EMBED_MODEL)
 
 
 @st.cache_resource
-def load_client():
+def load_client(version: str):
     return make_client()
 
 
 @st.cache_resource(show_spinner=False)
-def load_demo():
+def load_demo(version: str):
     try:
-        return SlideRAG(embedder=load_embedder(), client=load_client())
+        return SlideRAG(embedder=load_embedder(), client=load_client(version))
     except FileNotFoundError:  # no index/ folder: site runs upload-only
         return None
 
@@ -83,7 +115,7 @@ def index_uploads(files):
     if not chunks:
         return None, notes
     rag = SlideRAG(chunks=chunks, emb=emb, pdf_data=data,
-                   embedder=load_embedder(), client=load_client())
+                   embedder=load_embedder(), client=load_client(VERSION))
     return rag, notes
 
 
@@ -115,14 +147,16 @@ with st.sidebar:
     st.caption("Answers and practice questions come only from the slides and can still be "
                "wrong. Check the slide shown with each one before relying on it.")
 
-# Re-index only when the set of uploaded files changes; a new set starts a new chat and quiz.
+# Re-index only when the set of uploaded files (or the app's code) changes;
+# a new set starts a new chat and quiz.
 key = corpus_key(files)
-if st.session_state.get("corpus_key") != key:
+if st.session_state.get("corpus_key") != key or st.session_state.get("version") != VERSION:
     if files:
         rag, notes = index_uploads(files)
     else:
-        rag, notes = load_demo(), []
-    st.session_state.update(corpus_key=key, rag=rag, notes=notes, messages=[], quiz=None)
+        rag, notes = load_demo(VERSION), []
+    st.session_state.update(corpus_key=key, version=VERSION, rag=rag, notes=notes,
+                            messages=[], quiz=None)
 st.session_state.setdefault("quiz", None)  # sessions started before the quiz existed
 rag = st.session_state.rag
 
@@ -200,6 +234,8 @@ def ask_page():
             st.markdown(m["content"])
             if m.get("hits"):
                 show_sources(m["content"], m["hits"])
+            if m.get("model"):
+                st.caption(f"Answered by {m['model']}")
 
     question = (st.chat_input("Ask a question about the slides", submit_mode="disable")
                 or st.session_state.pop("pending_question", None))
@@ -230,8 +266,11 @@ def ask_page():
             api_error(e)
             return
         show_sources(answer, hits)
-    st.session_state.messages += [{"role": "user", "content": question},
-                                  {"role": "assistant", "content": answer, "hits": hits}]
+        if rag.last_model:
+            st.caption(f"Answered by {rag.last_model}")
+    st.session_state.messages += [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": answer, "hits": hits, "model": rag.last_model}]
 
 
 # ======================= Practice exam =======================
