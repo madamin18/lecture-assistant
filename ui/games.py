@@ -198,7 +198,7 @@ function makeRunner(root) {
     ctx.fillRect(r.x + 5, r.y + r.h - 9, 7, 9 - step * 4)
     ctx.fillRect(r.x + 18, r.y + r.h - 9, 7, 5 + step * 4)
     ctx.fillStyle = c.white; rounded(r.x + 5, r.y + 6, 20, 10, 4); ctx.fill()
-    ctx.fillStyle = c.text
+    ctx.fillStyle = "#000000"  // black eyes on the white visor, in light and dark mode
     ctx.fillRect(r.x + 10, r.y + 9, 3, 4); ctx.fillRect(r.x + 18, r.y + 9, 3, 4)
   }
 
