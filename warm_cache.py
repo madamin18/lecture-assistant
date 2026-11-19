@@ -22,7 +22,8 @@ def main():
     rag = SlideRAG()
     answers = answer_cache.load_file()
     questions = list(dict.fromkeys(list(config.DEMO_QUESTIONS.values()) + EXTRA
-                                   + list(config.DEMO_QUESTIONS_RU.values())))
+                                   + list(config.DEMO_QUESTIONS_RU.values())
+                                   + list(config.DEMO_QUESTIONS_KO.values())))
     for q in questions:
         key = answer_cache.cache_key(q, config.TOP_K)
         if key in answers:

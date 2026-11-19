@@ -56,6 +56,8 @@ Rules:
   Wrong options must be plausible to a student who skimmed the slides. Avoid "all of the
   above" / "none of the above" (the options get shuffled).
 - "cite" is the tag of the one slide the answer comes from, copied exactly from the excerpts.
+  Never mention slide tags, slide numbers or "the slide" in the question, options, answer or
+  explanation: write them like a real exam question about the topic.
 - Test understanding: definitions, but also why, compare, and apply-to-an-example questions.
 - Cover different slides; never ask two questions about the same fact.
 - Skip slide footers, page numbers, layout, and title or agenda slides.
@@ -685,7 +687,9 @@ def find_slide(cite: str, by_cite: dict, slides: list):
 
 
 def normalize_tags(answer: str) -> str:
-    """'L01 slide 06' -> 'L01 slide 6' (some models zero-pad the numbers)."""
+    """'L01 slide 06' -> 'L01 slide 6' (some models zero-pad the numbers), and no-break spaces
+    (gpt-oss writes "L01 slide 6") as plain ones."""
+    answer = answer.replace(" ", " ").replace(" ", " ")
     return re.sub(r"\b(slide |p\.)0+(?=\d)", r"\1", answer)
 
 

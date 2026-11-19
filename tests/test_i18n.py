@@ -1,5 +1,6 @@
-"""Interface texts: every English text has a Russian one that uses the same values, so switching
-the language can never break a page with a missing key or a KeyError in str.format."""
+"""Interface texts: every English text has a Russian and a Korean one that use the same values,
+so switching the language can never break a page with a missing key or a KeyError in
+str.format."""
 import inspect
 import string
 
@@ -7,29 +8,35 @@ import pytest
 
 from ui import i18n
 
+OTHER = [code for code in i18n.TEXT if code != "en"]
+
 
 def placeholders(text: str) -> set:
     return {name for _, name, _, _ in string.Formatter().parse(text) if name}
 
 
-def test_every_text_is_translated():
-    assert set(i18n.EN) == set(i18n.RU)
+def test_every_language_has_a_switch_label_and_texts():
+    assert set(i18n.LANGUAGES) == set(i18n.TEXT) == {"en", "ru", "ko"}
 
 
-@pytest.mark.parametrize("key", sorted(i18n.EN))
-def test_translation_uses_the_same_values(key):
-    en, ru = i18n.EN[key], i18n.RU[key]
-    assert type(en) is type(ru) or (callable(en) and callable(ru)), key
+@pytest.mark.parametrize("code", OTHER)
+def test_every_text_is_translated(code):
+    assert set(i18n.TEXT[code]) == set(i18n.EN)
+
+
+@pytest.mark.parametrize("code,key", [(code, key) for code in OTHER for key in sorted(i18n.EN)])
+def test_translation_uses_the_same_values(code, key):
+    en, other = i18n.EN[key], i18n.TEXT[code][key]
+    assert type(en) is type(other) or (callable(en) and callable(other)), key
     if callable(en):
-        assert list(inspect.signature(en).parameters) == list(inspect.signature(ru).parameters)
-        values = {name: 3 for name in inspect.signature(en).parameters}
-        if "uploaded" in values:
-            values["uploaded"] = True
-        assert en(**values) and ru(**values)
+        params = list(inspect.signature(en).parameters)
+        assert list(inspect.signature(other).parameters) == params
+        values = {name: True if name == "uploaded" else 3 for name in params}
+        assert en(**values) and other(**values)
     elif isinstance(en, str):
-        assert placeholders(en) == placeholders(ru), key
+        assert placeholders(en) == placeholders(other), key
     else:
-        assert len(en) == len(ru)  # lists, e.g. example questions
+        assert len(en) == len(other)  # lists, e.g. example questions
 
 
 def test_russian_plurals():
@@ -39,9 +46,11 @@ def test_russian_plurals():
         "слайдов", "слайд", "слайдов"]
     assert i18n.RU["badge_slides"](n=491) == "491 слайд"
     assert i18n.RU["badge_models"](n=22, p=3) == "22 модели ИИ от 3 провайдеров"
+    assert i18n.KO["badge_models"](n=22, p=3) == "AI 모델 22개 (제공업체 3곳)"
 
 
-def test_failure_reasons_are_translated():
+@pytest.mark.parametrize("table", [i18n.REASONS_RU, i18n.REASONS_KO])
+def test_failure_reasons_are_translated(table):
     from rag import describe_error
 
     class E(Exception):
@@ -49,4 +58,4 @@ def test_failure_reasons_are_translated():
             self.status_code = status
     reasons = {describe_error(E(s)) for s in (400, 401, 403, 404, 413, 429, 503)}
     reasons.add(describe_error(Exception()))
-    assert reasons <= set(i18n.REASONS_RU)
+    assert reasons <= set(table)

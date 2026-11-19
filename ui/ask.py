@@ -46,7 +46,8 @@ def pick_chip(widget_key: str, options: dict):
 
 def starter_chips() -> dict:
     if not c.uploaded():  # answers prepared by warm_cache.py
-        return config.DEMO_QUESTIONS_RU if i18n.lang() == "ru" else config.DEMO_QUESTIONS
+        return {"ru": config.DEMO_QUESTIONS_RU, "ko": config.DEMO_QUESTIONS_KO}.get(
+            i18n.lang(), config.DEMO_QUESTIONS)
     return {t("takeaways_label", tag=tag): t("takeaways_q", tag=tag)
             for tag, _ in c.rag().lectures[:4]}
 

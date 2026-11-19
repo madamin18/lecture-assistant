@@ -34,7 +34,8 @@ def _viewer(tag: str):
 
 # A dialog's title is fixed when it is defined: one per interface language.
 VIEWERS = {"en": st.dialog("Slide viewer", width="large", icon=":material/slideshow:")(_viewer),
-           "ru": st.dialog("Просмотр слайдов", width="large", icon=":material/slideshow:")(_viewer)}
+           "ru": st.dialog("Просмотр слайдов", width="large", icon=":material/slideshow:")(_viewer),
+           "ko": st.dialog("슬라이드 보기", width="large", icon=":material/slideshow:")(_viewer)}
 
 
 def page():

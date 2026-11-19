@@ -129,3 +129,13 @@ DEMO_QUESTIONS_RU = {
         "Чем фиксированный workflow отличается от агента?",
     ":material/translate: What is a hallucination?": "What is a hallucination?",
 }
+# ... and in Korean.
+DEMO_QUESTIONS_KO = {
+    ":material/help: 환각이란 무엇인가요?": "환각이란 무엇인가요?",
+    ":material/thermostat: 온도를 높이면 더 정확해지나요?":
+        "온도(temperature)를 높이면 모델의 답이 더 정확해지나요?",
+    ":material/analytics: recall@k는 어떻게 계산하나요?": "recall@k는 어떻게 계산하나요?",
+    ":material/account_tree: 워크플로 vs 에이전트":
+        "고정된 워크플로와 에이전트의 차이는 무엇인가요?",
+    ":material/translate: What is a hallucination?": "What is a hallucination?",
+}

@@ -15,8 +15,9 @@ Preloaded with all 9 lectures of *Design of Generative AI Application Systems* (
 Only the slide PDFs are published; the lab handouts, readings and quiz keys from the course
 packages are not.
 
-The interface is in **English or Russian** (the ENG / RUS switch at the top of the sidebar), and
-questions can be asked in English, Korean or Russian: a question in another language than the
+The interface is in **English, Russian or Korean** (the ENG / RUS / KOR switch at the top of the
+sidebar; starter questions, example questions and practice questions follow it), and questions
+can be asked in English, Korean or Russian: a question in another language than the
 slides is translated for the search (and the translation is shown to the model next to the
 original), and the answer comes back in the question's language with key terms from the slides
 in parentheses, e.g. галлюцинация (hallucination).
@@ -197,13 +198,13 @@ correctness"), which all three models cited.
 pip install pytest
 python -m pytest -q
 ```
-252 tests in `tests/` cover keyword search, lecture mentions (English, Korean, Russian),
+437 tests in `tests/` cover keyword search, lecture mentions (English, Korean, Russian),
 language detection, slide titles and footer numbers (on PDFs generated in the test), merging,
 the lecture filter, translation of cross-language questions, refusals, model fallback and
 cooldowns across providers (including Groq's "try again in ..." limits), choosing a model,
 hiding `<think>` reasoning, streaming, citation formats, related-slide suggestions,
-practice-question checks and the saved-answer cache; 185 of them check that every interface
-text has a Russian version using the same values. They use a fake embedder and a fake AI
+practice-question checks and the saved-answer cache; 370 of them check that every
+interface text has a Russian and a Korean version using the same values. They use a fake embedder and a fake AI
 client, so they run in under a second with no API key, no internet, no Streamlit and no
 PyTorch. GitHub Actions runs them on every push (`.github/workflows/tests.yml`).
 
@@ -215,7 +216,7 @@ PyTorch. GitHub Actions runs them on every push (`.github/workflows/tests.yml`).
 | `config.py` | settings and the provider list |
 | `answer_cache.py`, `warm_cache.py` | saved answers for instant demo questions |
 | `app.py` | the website: page setup, sidebar, tabs |
-| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English and Russian (`i18n.py`) |
+| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English, Russian and Korean (`i18n.py`) |
 | `evaluate.py`, `eval_quiz.py`, `compare_models.py` | measurements on `eval/test_set.jsonl` |
 | `tests/` | unit tests (no API key needed) |
 

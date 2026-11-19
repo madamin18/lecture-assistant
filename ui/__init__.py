@@ -6,7 +6,7 @@
   practice.py    Practice exam tab
   browse.py      Browse lectures tab and the slide viewer
   compare.py     Compare models tab: the same question to several AI models, with votes
-  i18n.py        interface text in English and Russian: t("key") in the chosen language
+  i18n.py        interface text in English, Russian and Korean: t("key") in the chosen language
 
 Per-visitor state lives in st.session_state, never in module variables: these modules are
 shared by everyone using the site.

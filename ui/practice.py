@@ -22,6 +22,11 @@ def lang_name(code: str) -> str:
     return LANGS[code] or t("qlang_same")
 
 
+def default_quiz_language() -> str:
+    """Questions in the interface language (the slides are in English)."""
+    return i18n.lang() if i18n.lang() in LANGS and i18n.lang() != "en" else "same"
+
+
 def make_quiz(n: int, kind: str, lectures: list, topic: str, lang: str = "same"):
     info = {}
     with st.spinner(t("quiz_spinner")):
@@ -226,16 +231,14 @@ def page():
             kind = st.segmented_control(t("q_type"), KINDS, format_func=kind_name,
                                         default="mixed", required=True)
         lang = st.segmented_control(t("q_lang"), list(LANGS), format_func=lang_name,
-                                    default="ru" if i18n.lang() == "ru" else "same",
-                                    required=True)
+                                    default=default_quiz_language(), required=True)
         go = st.form_submit_button(t("generate"), type="primary", width="stretch",
                                    icon=":material/auto_awesome:")
 
     if go:
         make_quiz(n, kind, chosen, topic, lang)
     elif st.session_state.pop("quiz_autogen", False):
-        make_quiz(5, "mixed", st.session_state.quiz_lectures, "",
-                  "ru" if i18n.lang() == "ru" else "same")
+        make_quiz(5, "mixed", st.session_state.quiz_lectures, "", default_quiz_language())
     elif st.session_state.pop("quiz_regen", False) and st.session_state.quiz:
         make_quiz(**st.session_state.quiz["settings"])
 

@@ -1,10 +1,10 @@
-"""Interface text in English and Russian. t("key", name=value) gives the text in the language
-picked at the top of the sidebar (ENG / RUS). A text is a str.format template, or a function
+"""Interface text in English, Russian and Korean. t("key", name=value) gives the text in the
+language picked at the top of the sidebar (ENG / RUS / KOR). A text is a str.format template, or a function
 for words whose form depends on a number (Russian: 1 слайд, 2 слайда, 5 слайдов).
 
 To add a language: add it to LANGUAGES and give it a dictionary in TEXT; a missing key falls
 back to English."""
-LANGUAGES = {"en": "ENG", "ru": "RUS"}
+LANGUAGES = {"en": "ENG", "ru": "RUS", "ko": "KOR"}
 
 
 def lang() -> str:
@@ -30,11 +30,12 @@ def plural_ru(n: int, one: str, few: str, many: str) -> str:
 
 def reason(text: str) -> str:
     """A model's failure reason (from rag.describe_error) in the interface language."""
-    if lang() == "en":
+    code = lang()
+    if code == "en":
         return text
     if text.startswith("error "):
-        return "ошибка " + text[6:]
-    return REASONS_RU.get(text, text)
+        return {"ru": "ошибка ", "ko": "오류 "}[code] + text[6:]
+    return {"ru": REASONS_RU, "ko": REASONS_KO}[code].get(text, text)
 
 
 REASONS_RU = {
@@ -518,4 +519,243 @@ RU = {
                      "What is the difference between a workflow and an agent?"],
 }
 
-TEXT = {"en": EN, "ru": RU}
+REASONS_KO = {
+    "rejected the request": "요청을 거부함",
+    "API key rejected": "API 키가 거부됨",
+    "no access with this key": "이 키로는 접근 권한이 없음",
+    "model not found": "모델을 찾을 수 없음",
+    "request too large for this model's free tier": "이 모델의 무료 등급에는 요청이 너무 큼",
+    "rate limit or daily quota reached": "요청 한도 또는 일일 할당량에 도달함",
+    "overloaded": "모델 과부하",
+    "timed out or couldn't connect": "시간 초과 또는 연결 실패",
+    "busy": "사용 중",
+}
+
+KO = {
+    # page and header
+    "app_title": "강의 노트 도우미",
+    "app_subtitle": "강의 내용을 질문하고, 시험을 준비하고, 슬라이드를 넘겨 보세요. 모든 답변에는 "
+                    "근거가 된 슬라이드가 함께 표시됩니다.",
+    "ui_language": "인터페이스 언어",
+    "no_key": "API 키를 찾을 수 없습니다. GEMINI_API_KEY(또는 GROQ_API_KEY, OPENROUTER_API_KEY)를 "
+              "`.env`(로컬) 또는 Streamlit Cloud 앱의 Secrets(Manage app -> Settings -> Secrets)에 "
+              "추가하세요.",
+    "badge_lectures": lambda n, uploaded: f"{'업로드한 강의' if uploaded else '강의'} {n}개",
+    "badge_slides": lambda n: f"슬라이드 {n}장",
+    "badge_models": lambda n, p: f"AI 모델 {n}개" + (f" (제공업체 {p}곳)" if p > 1 else ""),
+    "badge_cites": "답변마다 출처 슬라이드 표시",
+    "demo_caption": "데모: *Design of Generative AI Application Systems* 강의 자료입니다. 사이드바에 "
+                    "직접 PDF를 업로드하면 그 자료로 사용할 수 있습니다.",
+    "ask": ":material/forum: 질문하기",
+    "practice": ":material/quiz: 모의고사",
+    "browse": ":material/auto_stories: 강의 둘러보기",
+    "compare": ":material/compare_arrows: 모델 비교",
+
+    # uploads
+    "upload_bad_pdf": "**{name}** 파일을 PDF로 열 수 없습니다.",
+    "upload_too_many": "이 파일들은 모두 {pages}쪽입니다. 한도는 {limit}쪽이니 강의 수를 줄여서 "
+                       "업로드해 주세요.",
+    "upload_reading": "슬라이드 {pages}장을 읽는 중… (처음에는 1분 정도 걸립니다)",
+    "upload_no_text": "**{name}**에는 읽을 수 있는 텍스트가 없어(스캔 이미지로 보임) 검색할 수 "
+                      "없습니다.",
+    "upload_ready": "준비 완료: 파일 {files}개에서 슬라이드 {slides}장",
+    "upload_start": "시작하려면 사이드바에서 강의 PDF를 하나 이상 업로드하세요.",
+
+    # sidebar
+    "sb_your_slides": "내 슬라이드",
+    "sb_upload": "강의 PDF 업로드",
+    "sb_upload_help": "업로드한 파일은 본인만 검색할 수 있습니다. 이 브라우저 탭의 메모리에만 있고 "
+                      "서버에는 저장되지 않습니다.",
+    "sb_filter": "이 강의에서만 검색",
+    "sb_filter_help": "비워 두면 모든 강의를 검색합니다. 질문에 강의를 적어도 됩니다(\"3강\", "
+                      "\"Lesson 3\").",
+    "sb_k": "답변당 읽는 슬라이드 수",
+    "sb_k_help": "답하기 전에 가장 관련 있는 슬라이드를 몇 장 읽을지 정합니다.",
+    "sb_model": "AI 모델",
+    "auto": "자동",
+    "auto_recommended": "자동 (권장)",
+    "sb_model_help": "자동은 테스트에서 가장 좋은 결과를 낸 모델(빠르고 정확함)부터 쓰고, 모델이 "
+                     "바쁘거나 무료 할당량을 다 쓰면 다음 모델이나 다른 제공업체로 넘어갑니다. "
+                     "모델을 직접 골라 써 볼 수도 있고, '모델 비교' 탭에서 여러 모델을 나란히 볼 수 "
+                     "있습니다.",
+    "sb_clear": "대화 지우기",
+    "sb_save": "대화 저장",
+    "sb_save_help": "이 대화를 각 답변의 출처 슬라이드와 함께 학습 노트(Markdown)로 내려받습니다.",
+    "sb_disclaimer": "답변과 연습 문제는 슬라이드에서만 만들어지지만 틀릴 수 있습니다. 믿기 전에 "
+                     "함께 표시된 슬라이드를 확인하세요.",
+
+    # slides, sources, "How I found this"
+    "caption_pdf_page": "{title} · PDF {page}쪽",
+    "caption_slide": "{title} · 슬라이드 {label}",
+    "caption_pdf_suffix": " (PDF {page}쪽)",
+    "thanks": "피드백 감사합니다!",
+    "searching_only_toast": "이제 {tag}에서만 검색합니다. 전체를 검색하려면 사이드바의 필터를 "
+                            "지우세요.",
+    "api_error": "AI 서비스가 요청을 거부했습니다(오류 {code}). 이 사이트를 운영한다면 `.env` 또는 "
+                 "앱 Secrets의 API 키를 확인하세요.",
+    "busy": "AI 서비스가 지금 바쁩니다. 1분 후에 다시 시도해 주세요.",
+    "notes_title": "# 강의 노트 도우미: 대화",
+    "notes_slides": "슬라이드",
+    "scope_lectures": "{lectures}의 슬라이드 {n}장",
+    "scope_all": "슬라이드 {n}장",
+    "trace_cached": "{scope} 검색 · 저장된 답변을 바로 표시",
+    "trace_searched": "{scope}을 {s:.1f}초 만에 검색",
+    "trace_answered": " · {s:.1f}초 만에 답변",
+    "step_translated": "검색을 위해 질문을 번역함",
+    "scope_named": " (질문에 언급됨)",
+    "scope_filter": " (사이드바 필터)",
+    "scope_all_lectures": "전체 강의 {n}개",
+    "step_search": "하이브리드 검색: 의미 + 키워드, 상위 슬라이드 {k}장",
+    "step_searched_scope": "검색 범위: {scope}.",
+    "step_failed": "{model} 응답 없음",
+    "step_failed_reason": "원인: {reason}. 그래서 다음 모델에 물었습니다.",
+    "step_answer": "답변 작성: {model}",
+    "step_answer_detail": "{s:.1f}초, 문장마다 출처 표시.",
+    "step_refused": "충분히 가까운 슬라이드가 없어 AI에 묻지 않음",
+    "step_refused_detail": "답변은 표준 거절 문구입니다.",
+    "step_cached": "저장된 답변에서 표시",
+    "step_cached_detail": "같은 슬라이드와 설정으로 이미 답한 질문이라, AI에 다시 묻지 않고 저장된 "
+                          "답변을 바로 보여 줍니다.",
+    "col_slide": "슬라이드",
+    "col_title": "제목",
+    "col_relevance": "관련도",
+    "col_lecture": "강의",
+    "relevance_help": "질문과 슬라이드의 의미 유사도",
+    "found_on": "출처",
+    "other_slides": "검색된 다른 슬라이드",
+    "slides_searched": "검색된 슬라이드",
+
+    # Ask
+    "ask_next": "이어서 물어보기",
+    "explain_from": '{lec}의 "{title}"을(를) 설명해 주세요.',
+    "takeaways_label": ":material/summarize: {tag} 핵심 정리",
+    "takeaways_q": "{tag}의 핵심 내용은 무엇인가요?",
+    "welcome_title": ":material/waving_hand: 무엇이 궁금하세요?",
+    "welcome_text": "강의에 대해 무엇이든 한국어, 영어, 러시아어로 물어보세요. 모든 답변에 근거 "
+                    "슬라이드가 표시됩니다.",
+    "welcome_tip": "팁: 질문에 강의를 적거나(\"3강\", \"Lesson 3\") 사이드바 필터를 쓰면 그 강의에서만 "
+                   "검색합니다.",
+    "try_asking": "이렇게 물어보세요",
+    "chat_placeholder": "슬라이드에 대해 질문하세요 (한국어, English, Русский)",
+    "filter_caption": ":material/filter_alt: {lectures}에서만 검색 중 (사이드바에서 바꿀 수 "
+                      "있습니다).",
+    "searching": ":shimmer[슬라이드 검색 중…]",
+
+    # Practice exam
+    "kind_mixed": "혼합",
+    "kind_mcq": "객관식",
+    "kind_short": "단답형",
+    "qlang_same": "슬라이드와 같은 언어",
+    "quiz_spinner": "슬라이드로 연습 문제를 만드는 중…",
+    "quiz_none": "이번에는 이 슬라이드로 문제를 만들지 못했습니다. 다시 시도해 주세요",
+    "quiz_none_topic": " 또는 다른 주제를 입력해 보세요.",
+    "quiz_other_model": " 다른 AI 모델이 더 잘할 수도 있습니다.",
+    "quiz_ready": "문제 {n}개 준비 완료. 행운을 빕니다!",
+    "sheet_title": "# 연습 문제",
+    "sheet_answers": "## 정답",
+    "source": "출처: {cite} · {title}",
+    "explain_btn": "이 문제 설명해 줘",
+    "explain_help": "이 문제에 대해 도우미에게 물어봅니다. 슬라이드를 근거로 답합니다.",
+    "q_badge": "문제 {n}",
+    "your_answer": "내 답",
+    "correct_msg": "정답: **{letter}) {text}**",
+    "wrong_msg": "선택한 답: **{picked}** · 정답: **{letter}) {text}**",
+    "short_placeholder": "답을 쓴 뒤 모범 답안을 열어 비교해 보세요.",
+    "reveal": "모범 답안 보기",
+    "model_answer": "**모범 답안:** {text}",
+    "did_you": "맞혔나요?",
+    "m_answered": "푼 문제",
+    "m_correct": "정답",
+    "m_score": "점수",
+    "written_by": ":material/smart_toy: 문제 작성: {model}",
+    "finished_great": "완료: {c} / {n} ({pct}%). 아주 잘했어요!",
+    "finished": "완료: {c} / {n} ({pct}%). 틀린 문제의 출처 슬라이드를 복습한 뒤 다시 풀어 보세요.",
+    "new_questions": "새 문제",
+    "retry_missed": "틀린 {n}문제 다시 풀기",
+    "try_again": "처음부터 다시",
+    "download_sheet": "문제지 내려받기",
+    "build_exam": ":material/edit_note: 모의고사 만들기",
+    "lectures_pick": "강의 (비우면 전체)",
+    "topic": "주제 (선택)",
+    "topic_placeholder": "예: 환각. 비워 두면 전체 범위에서 출제합니다.",
+    "n_questions": "문항 수",
+    "q_type": "유형",
+    "q_lang": "언어",
+    "generate": "문제 만들기",
+    "practice_caption": ":material/info: 모든 문제는 인용한 슬라이드와 대조해 검증됩니다. 답을 "
+                        "고르면 바로 정답 여부를 알 수 있습니다.",
+
+    # Browse lectures
+    "browse_caption": "강의를 열어 슬라이드를 넘겨 보고, 원하는 슬라이드에 대해 묻거나 퀴즈를 풀어 "
+                      "보세요.",
+    "view_slides": "슬라이드 보기",
+    "ask_btn": "질문",
+    "quiz_btn": "퀴즈",
+    "n_slides": lambda n: f"슬라이드 {n}장",
+    "slide_label": "슬라이드",
+    "slide_option": "슬라이드 {n}",
+    "ask_slide": "이 슬라이드에 대해 묻기",
+    "ask_slide_q": '{tag}의 이 슬라이드(슬라이드 {n})를 설명해 주세요: "{name}"',
+    "quiz_lecture": "이 강의로 퀴즈 풀기",
+
+    # Compare models
+    "cmp_title": ":material/compare_arrows: 어떤 AI 모델이 가장 잘 답할까요?",
+    "cmp_caption": "모든 모델이 같은 질문과 같은 슬라이드를 받으므로 답변을 쓰는 방식만 다릅니다. "
+                   "더 나은 답변에 투표하세요. 투표하기 전까지 모델 이름은 숨겨집니다.",
+    "cmp_one_model": "사용할 수 있는 AI 모델이 하나뿐입니다. 모델을 비교하려면 다른 제공업체의 API "
+                     "키(예: GROQ_API_KEY)를 추가하세요.",
+    "cmp_models": "모델 (2개 또는 3개)",
+    "cmp_question": "질문",
+    "cmp_placeholder": "강의에 대해 질문하세요 (한국어, 영어, 러시아어)",
+    "cmp_blind": "투표할 때까지 모델 이름 숨기기",
+    "cmp_go": "답변 비교하기",
+    "cmp_pick2": "모델을 두 개 이상 고르세요.",
+    "cmp_need_q": "먼저 질문을 입력하세요.",
+    "cmp_searching": "슬라이드 검색 중…",
+    "cmp_writing": "{name} 답변 작성 중…",
+    "cmp_model_x": "모델 {letter}",
+    "cmp_your_pick": ":green-badge[:material/thumb_up: 내 선택]",
+    "cmp_no_answer": "답변 없음: {reason}.",
+    "cmp_secs": "{s:.1f}초",
+    "cmp_cited": lambda n: f"인용 슬라이드 {n}장",
+    "cmp_made_up": lambda n: f"지어낸 인용 {n}개",
+    "cmp_refused": "거절",
+    "cmp_vote_q": "**어느 답변이 더 낫나요?** 투표하기 전에 아래 인용 슬라이드를 확인하세요.",
+    "cmp_better": "{name} 선택",
+    "cmp_tie": "무승부",
+    "cmp_both_bad": "둘 다 별로",
+    "cmp_all_bad": "모두 별로",
+    "cmp_voted": "내 투표: {verdict}.",
+    "cmp_verdict_tie": "무승부",
+    "cmp_verdict_bad": "좋은 답변 없음",
+    "cmp_thanks": "감사합니다! 아래 순위표에 투표가 반영되었습니다.",
+    "cmp_refusal_all": "이 질문과 충분히 가까운 슬라이드가 없어 모든 모델이 같은 거절 답변을 하게 "
+                       "됩니다. 강의에 관한 질문을 해 보세요.",
+    "cmp_slides_read": "모든 모델이 읽은 슬라이드 ({n}장)",
+    "cmp_votes_title": "##### :material/leaderboard: 방문자 투표",
+    "cmp_no_votes": "아직 투표가 없습니다. 위에서 두 모델을 비교하고 더 나은 답변에 투표하세요.",
+    "col_model": "모델",
+    "col_win_rate": "승률",
+    "col_votes": "투표 수",
+    "col_ties": "무승부",
+    "col_both_bad": "둘 다 별로",
+    "col_avg_time": "평균 시간(초)",
+    "col_no_answer": "답변 없음",
+    "win_rate_help": "답변한 비교 중 이긴 비율 (무승부는 0.5승)",
+    "cmp_votes_caption": "서버가 마지막으로 다시 시작된 뒤 이 사이트 방문자 모두의 투표입니다. "
+                         "무승부는 0.5승으로 계산합니다.",
+    "bench_title": "##### :material/science: 테스트 세트로 측정한 결과",
+    "col_correct": "정답",
+    "col_partial": "부분 정답",
+    "col_right_slide": "올바른 슬라이드 인용",
+    "col_made_up": "지어낸 인용",
+    "col_false_refusal": "잘못된 거절",
+    "col_off_topic": "주제 밖 질문 거절",
+    "bench_caption": "eval/test_set.jsonl의 질문 {n}개 ({date}), 단위 %. 모든 모델의 답변을 같은 "
+                     "채점 모델 {judge}가 평가했습니다.",
+    "cmp_examples": ["환각이란 무엇인가요?", "recall@k는 어떻게 계산하나요?",
+                     "청크 오버랩은 왜 검색에 도움이 되나요?",
+                     "What is the difference between a workflow and an agent?"],
+}
+
+TEXT = {"en": EN, "ru": RU, "ko": KO}

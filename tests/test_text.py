@@ -75,6 +75,9 @@ def test_citation_formats_from_other_models():
     facts = citation_facts(answer, hits)
     assert (facts["cited"], facts["made_up"], facts["refused"]) == (2, 0, False)
     assert badge_citations("[ L01 slide 30 ]") == ":violet-badge[L01 slide 30]"
+    nbsp = "Tone [ L01 slide 30 ]"  # gpt-oss's narrow no-break spaces
+    assert cited_hits(nbsp, hits) == hits[1:]
+    assert badge_citations(nbsp) == "Tone :violet-badge[L01 slide 30]"
     assert citation_facts("Made up [L09 slide 99].", hits)["made_up"] == 1
 
 
