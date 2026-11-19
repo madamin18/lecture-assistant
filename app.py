@@ -29,10 +29,15 @@ import rag as rag_module
 
 
 def code_version() -> str:
-    """Fingerprint of the search/answer code and settings."""
+    """Fingerprint of the search/answer code, settings, demo index and saved answers."""
     h = hashlib.sha1()
-    for name in ("rag.py", "config.py", "ingest.py", "answer_cache.py"):
-        h.update(Path(__file__).with_name(name).read_bytes())
+    here = Path(__file__).parent
+    for name in ("rag.py", "config.py", "ingest.py", "answer_cache.py",
+                 "index/chunks.json", "index/answer_cache.json"):
+        try:
+            h.update((here / name).read_bytes())
+        except OSError:  # no demo index: the site runs upload-only
+            pass
     return h.hexdigest()[:12]
 
 
@@ -54,7 +59,8 @@ def load_code() -> str:
 VERSION = load_code()
 
 from ingest import build_index, page_count  # noqa: E402  (imported after the reload on purpose)
-from rag import SlideRAG, cited_hits, make_client, refusal_for, render_page  # noqa: E402
+from rag import (SlideRAG, badge_citations, cited_hits, language,  # noqa: E402
+                 make_client, refusal_for, render_page)
 
 st.set_page_config(page_title="Lecture Notes Assistant", page_icon=":material/school:")
 
@@ -88,6 +94,19 @@ def load_demo(version: str):
 def runtime_answers(version: str) -> dict:
     """First questions already answered on this server, shared by all visitors."""
     return {}
+
+
+RUNTIME_CACHE_SIZE = 300  # answers kept in memory; the oldest are dropped first
+
+
+def remember_answer(ckey: str, entry: dict):
+    cache = runtime_answers(VERSION)
+    cache[ckey] = entry
+    while len(cache) > RUNTIME_CACHE_SIZE:
+        try:
+            cache.pop(next(iter(cache)))
+        except (StopIteration, RuntimeError, KeyError):  # another visitor changed it meanwhile
+            break
 
 
 @st.cache_resource(show_spinner=False)
@@ -218,9 +237,23 @@ def slide_title(text: str, words: int = 9) -> str:
     return " ".join(parts[:words]) + ("…" if len(parts) > words else "")
 
 
+def heading(chunk: dict, page: int | None = None) -> str:
+    """A slide's title as printed on it (found by font size in ingest.py). page = one PDF page
+    of a chunk that merged several; by default the chunk's main slide."""
+    if page is not None and chunk.get("headings") and page in chunk["pages"]:
+        title = chunk["headings"][chunk["pages"].index(page)]
+    else:
+        title = chunk.get("heading")
+    return title or slide_title(chunk["text"])  # indexes built before headings existed
+
+
+def shorten(text: str, n: int = 48) -> str:
+    return text if len(text) <= n else text[:n - 1].rsplit(" ", 1)[0] + "…"
+
+
 # Slides that make poor follow-up questions.
 SKIP_TITLES = re.compile(r"^(learning outcomes|references?|sources|exit questions|agenda|"
-                         r"outline|roadmap|questions)", re.IGNORECASE)
+                         r"outline|roadmap|questions|small quizzes)", re.IGNORECASE)
 
 
 def slide_caption(title: str, page: int, label) -> str:
@@ -240,12 +273,12 @@ def show_slide(h):
 
 
 def page_index(pdf: str) -> dict:
-    """PDF page -> (printed label, chunk) for one lecture file."""
+    """PDF page -> (printed label, chunk, slide title) for one lecture file."""
     out = {}
     for c in rag.chunks:
         if c["pdf"] == pdf:
             for page, label in zip(c["pages"], c.get("labels") or [None] * len(c["pages"])):
-                out[page] = (label, c)
+                out[page] = (label, c, heading(c, page))
     return out
 
 
@@ -267,6 +300,20 @@ def quiz_lecture(tag: str):
     st.session_state.update(mode=PRACTICE, quiz_lectures=[tag], quiz_autogen=True)
 
 
+def chat_notes(messages: list) -> str:
+    """The chat as Markdown study notes: each question, its answer, and the slides it cites."""
+    lines = ["# Lecture Notes Assistant: chat", ""]
+    for m in messages:
+        if m["role"] == "user":
+            lines += [f"## {m['content']}", ""]
+        else:
+            lines += [m["content"], ""]
+            cited = cited_hits(m["content"], m.get("hits") or [])
+            if cited:
+                lines += ["Slides: " + "; ".join(f"{h['cite']} ({heading(h)})" for h in cited), ""]
+    return "\n".join(lines)
+
+
 # ---------- sidebar, part 2: search settings ----------
 with st.sidebar:
     if rag is not None and len(rag.lectures) > 1:
@@ -276,8 +323,15 @@ with st.sidebar:
                       "(\"in Lesson 3\", \"3강\") also works.")
     k = st.slider("Slides read per answer", 3, 12, config.TOP_K,
                   help="How many of the best-matching slides the assistant reads before answering.")
-    if st.button("Clear chat", icon=":material/delete_sweep:", width="stretch"):
-        st.session_state.messages = []
+    with st.container(horizontal=True, gap="small"):
+        if st.button("Clear chat", icon=":material/delete_sweep:", width="stretch"):
+            st.session_state.messages = []
+        st.download_button("Save chat", lambda m=list(st.session_state.messages): chat_notes(m),
+                           file_name="lecture_chat.md", mime="text/markdown",
+                           icon=":material/download:", width="stretch", on_click="ignore",
+                           disabled=not st.session_state.messages,
+                           help="Download this chat as study notes (Markdown), with the "
+                                "slides each answer came from.")
     st.caption("Answers and practice questions come only from the slides and can still be "
                "wrong. Check the slide shown with each one before relying on it.")
 
@@ -357,8 +411,8 @@ def show_sources(answer: str, hits: list):
     if others:
         label = "Other slides searched" if cited else "Slides searched"
         with st.expander(f"{label} ({len(others)})", icon=":material/search:"):
-            table = pd.DataFrame([{"Slide": h["cite"], "Lecture": h["title"],
-                                   "Relevance": h["score"], "Starts with": slide_title(h["text"], 12)}
+            table = pd.DataFrame([{"Slide": h["cite"], "Title": heading(h),
+                                   "Relevance": h["score"], "Lecture": h["title"]}
                                   for h in others])
             st.dataframe(table, hide_index=True, column_config={
                 "Relevance": st.column_config.ProgressColumn(
@@ -372,12 +426,12 @@ def next_questions(answer: str, hits: list) -> dict:
     pool = [h for h in hits if h not in cited] or hits
     out = {}
     for h in pool:
-        title = slide_title(h["text"], 8)
-        if (1 in h["pages"] or SKIP_TITLES.match(title) or len(title) < 15
-                or any(title.rstrip("…") in v for v in out.values())):
+        title = heading(h).rstrip("…")
+        if (1 in h["pages"] or SKIP_TITLES.match(title) or len(title) < 12
+                or any(f'"{title}"' in v for v in out.values())):
             continue
-        out[f":material/arrow_forward: {h['lecture']} · {title}"] = \
-            f'Explain "{title.rstrip("…")}" from {h["lecture"]}.'
+        out[f":material/arrow_forward: {h['lecture']} · {shorten(title, 60)}"] = \
+            f'Explain "{title}" from {h["lecture"]}.'
         if len(out) == 3:
             break
     return out
@@ -400,9 +454,10 @@ def ask_page():
     messages = st.session_state.messages
     for i, m in enumerate(messages):
         with st.chat_message(m["role"]):
-            st.markdown(m["content"])
             if m["role"] != "assistant":
+                st.markdown(m["content"])
                 continue
+            st.markdown(badge_citations(m["content"]))
             if m.get("trace"):
                 with st.expander(trace_label(m["trace"]), type="compact",
                                  icon=":material/manage_search:"):
@@ -445,7 +500,7 @@ def ask_page():
         st.markdown(question)
 
     # A chat's first question may have been answered before: show that instantly.
-    lecture_filter = st.session_state.lecture_filter or None
+    lecture_filter = st.session_state.lecture_filter or None  # [] and None both mean all
     ckey = f"{key}|{answer_cache.cache_key(question, k, lecture_filter)}"
     if not messages:
         entry = runtime_answers(VERSION).get(ckey)
@@ -461,12 +516,12 @@ def ask_page():
 
     with st.chat_message("assistant"):
         trace = {"n_slides": len(rag.chunks), "n_lectures": n_lectures, "k": k}
+        info = {}  # filled in by the search and the answer (translation, lectures, model)
         try:
             t0 = time.time()
             with st.status(":shimmer[Searching the slides…]", type="compact") as status:
-                prepared, hits = rag.prepare(question, k, history,
-                                             st.session_state.lecture_filter or None)
-                trace.update(search_s=time.time() - t0, **rag.last_search)
+                prepared, hits = rag.prepare(question, k, history, lecture_filter, info)
+                trace.update(search_s=time.time() - t0, **info)
                 trace_steps({**trace, "model": None})
                 status.update(label=trace_label(trace), state="complete")
             if prepared is None:  # nothing close enough in the slides: refuse without the LLM
@@ -475,13 +530,18 @@ def ask_page():
                 st.markdown(answer)
             else:
                 t1 = time.time()
-                answer = st.write_stream(rag.stream(prepared))  # text appears as it's written
-                trace.update(answer_s=time.time() - t1, model=rag.last_model)
+                answer, box = "", st.empty()
+                for piece in rag.stream(prepared, info):  # text appears as it's written
+                    answer += piece
+                    box.markdown(badge_citations(answer) + " ▌")
+                box.markdown(badge_citations(answer))
+                trace.update(answer_s=time.time() - t1, model=info.get("model"))
         except APIStatusError as e:
             api_error(e)
             return
-    if not messages and config.BUSY_MESSAGE not in answer and "cut off" not in answer:
-        runtime_answers(VERSION)[ckey] = answer_cache.to_entry(answer, hits, trace)
+    if (not messages and answer.strip() and config.BUSY_MESSAGE not in answer
+            and "cut off" not in answer):
+        remember_answer(ckey, answer_cache.to_entry(answer, hits, trace))
     st.session_state.messages += [
         {"role": "user", "content": question},
         {"role": "assistant", "content": answer, "hits": hits, "trace": trace}]
@@ -530,25 +590,41 @@ def self_grade(i: int):
     quiz["self"][i] = st.session_state[f"self_{quiz['id']}_{i}"]
 
 
-def retry_quiz():
-    """Same questions, fresh answers (new widget keys)."""
+def retry_quiz(missed_only: bool = False):
+    """Same questions (or only the ones answered wrong), fresh answers (new widget keys)."""
     quiz = st.session_state.quiz
+    if missed_only:
+        quiz["questions"] = [q for i, q in enumerate(quiz["questions"])
+                             if result(quiz, i, q) is False]
     st.session_state.quiz_count = st.session_state.get("quiz_count", 0) + 1
     quiz.update(id=st.session_state.quiz_count, responses={}, revealed=set(), self={},
                 celebrated=False)
 
 
+def result(quiz, i: int, q: dict) -> bool | None:
+    """True/False once answered, None before. Short answers count once self-graded."""
+    if q["type"] == "mcq":
+        chosen = quiz["responses"].get(i)
+        return None if chosen is None else chosen == q["options"][q["answer"]]
+    graded = quiz["self"].get(i)
+    return None if graded is None else graded == 1
+
+
 def quiz_score(quiz) -> tuple[int, int]:
-    """(answered, correct). Short answers count once the student grades themselves."""
-    answered = correct = 0
-    for i, q in enumerate(quiz["questions"]):
-        if q["type"] == "mcq" and i in quiz["responses"]:
-            answered += 1
-            correct += quiz["responses"][i] == q["options"][q["answer"]]
-        elif q["type"] == "short" and quiz["self"].get(i) is not None:
-            answered += 1
-            correct += quiz["self"][i] == 1
-    return answered, correct
+    """(answered, correct)."""
+    results = [result(quiz, i, q) for i, q in enumerate(quiz["questions"])]
+    return sum(r is not None for r in results), sum(r is True for r in results)
+
+
+def explain_question(q: dict):
+    """Ask the assistant to explain a practice question (opens the Ask tab)."""
+    right = q["options"][q["answer"]] if q["type"] == "mcq" else q["answer"]
+    lec = q["hit"]["lecture"]  # naming the lecture makes the search look only there
+    if language(q["question"]) == "ko":
+        ask = f'{lec}: {q["question"]} 정답이 "{right}"인 이유를 설명해 주세요.'
+    else:
+        ask = f'{lec}: {q["question"]} Explain why the answer is "{right}".'
+    st.session_state.update(mode=ASK, pending_question=ask)
 
 
 def study_sheet(quiz) -> str:
@@ -569,9 +645,14 @@ def study_sheet(quiz) -> str:
     return "\n".join(lines) + "\n"
 
 
-def show_source(q: dict):
-    with st.expander(f"Source: {q['hit']['cite']}", icon=":material/location_on:"):
+def show_source(q: dict, qid: int, i: int, explain: bool = False):
+    with st.expander(f"Source: {q['hit']['cite']} · {shorten(heading(q['hit']), 60)}",
+                     icon=":material/location_on:"):
         show_slide(q["hit"])
+    if explain:
+        st.button("Explain this to me", key=f"explain_{qid}_{i}", icon=":material/forum:",
+                  on_click=explain_question, args=(q,),
+                  help="Ask the assistant about this question; it answers from the slides.")
 
 
 def show_question(quiz: dict, i: int, q: dict):
@@ -598,7 +679,7 @@ def show_question(quiz: dict, i: int, q: dict):
                          f"**{LETTERS[q['answer']]}) {right}**", icon=":material/cancel:")
             if q["explanation"]:
                 st.caption(q["explanation"])
-            show_source(q)
+            show_source(q, qid, i, explain=chosen != right)
     else:
         revealed = i in quiz["revealed"]
         st.text_area("Your answer", key=answer_key(qid, i), disabled=revealed,
@@ -614,7 +695,7 @@ def show_question(quiz: dict, i: int, q: dict):
             with st.container(horizontal=True, vertical_alignment="center"):
                 st.markdown("Did you get it right?")
                 st.feedback("thumbs", key=f"self_{qid}_{i}", on_change=self_grade, args=(i,))
-            show_source(q)
+            show_source(q, qid, i, explain=quiz["self"].get(i) == 0)
 
 
 def show_quiz(quiz: dict):
@@ -643,10 +724,14 @@ def show_quiz(quiz: dict):
             st.info(f"Finished: {correct} / {len(qs)} ({pct}%). Review the source slides for "
                     "the ones you missed, then try again.", icon=":material/school:")
 
+    missed = sum(result(quiz, i, q) is False for i, q in enumerate(qs))
     with st.container(horizontal=True):
         st.button("New questions", icon=":material/refresh:", type="primary",
                   on_click=lambda: st.session_state.update(quiz_regen=True))
-        st.button("Try again", icon=":material/replay:", on_click=retry_quiz)
+        if missed and answered == len(qs):
+            st.button(f"Retry the {missed} I missed", icon=":material/replay:",
+                      on_click=retry_quiz, args=(True,))
+        st.button("Try again", icon=":material/restart_alt:", on_click=retry_quiz)
         st.download_button("Download study sheet", study_sheet(quiz),
                            file_name="practice_questions.md", mime="text/markdown",
                            icon=":material/download:", on_click="ignore")
@@ -695,15 +780,19 @@ def slide_viewer(tag: str):
     pages = page_index(pdf)
     total = pdf_page_count(pdf, key, data)
     st.markdown(f":violet-badge[{tag}] **{title}** · {total} slides")
-    page = st.select_slider(
-        "Slide", options=list(range(1, total + 1)), key=f"viewer_{tag}",
-        format_func=lambda p: f"slide {pages.get(p, (None,))[0] or p}")
-    label, chunk = pages.get(page, (None, None))
+
+    def slide_name(p: int) -> str:
+        label, _, name = pages.get(p, (None, None, ""))
+        return f"{label or p} · {shorten(name, 40)}" if name else f"slide {label or p}"
+
+    page = st.select_slider("Slide", options=list(range(1, total + 1)), key=f"viewer_{tag}",
+                            format_func=slide_name)
+    label, chunk, name = pages.get(page, (None, None, ""))
     with st.container(horizontal=True):  # above the slide, so no scrolling is needed
         if chunk is not None and st.button("Ask about this slide", type="primary",
                                            icon=":material/forum:"):
             st.session_state.goto = ("ask", f'Explain this slide from {tag} (slide {label or page}): '
-                                            f'"{slide_title(chunk["text"], 12).rstrip("…")}"')
+                                            f'"{name}"')
             st.rerun()
         if st.button("Quiz me on this lecture", icon=":material/quiz:"):
             st.session_state.goto = ("quiz", tag)

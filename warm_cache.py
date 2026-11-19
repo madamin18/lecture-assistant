@@ -28,20 +28,21 @@ def main():
             print(f"cached already: {q}")
             continue
         t0 = time.time()
-        messages, hits = rag.prepare(q, config.TOP_K)
+        info = {}
+        messages, hits = rag.prepare(q, config.TOP_K, info=info)
         trace = {"n_slides": len(rag.chunks), "n_lectures": len(rag.lectures), "k": config.TOP_K,
-                 "search_s": time.time() - t0, **rag.last_search}
+                 "search_s": time.time() - t0, **info}
         if messages is None:
             from rag import refusal_for
             answer = refusal_for(q)
             trace["refused_early"] = True
         else:
             t1 = time.time()
-            answer = rag.chat(messages)
+            answer = rag.chat(messages, info)
             if answer is None:
                 print(f"BUSY, skipped: {q}")
                 continue
-            trace.update(answer_s=time.time() - t1, model=rag.last_model)
+            trace.update(answer_s=time.time() - t1, model=info["model"])
         answers[key] = answer_cache.to_entry(answer, hits, trace)
         print(f"saved ({trace.get('model')}): {q}\n   {answer[:120]!r}")
     answer_cache.save_file(answers)

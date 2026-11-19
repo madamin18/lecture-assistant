@@ -43,9 +43,41 @@ def cite_tag(lec: str, pages: list, labels: list | None = None) -> str:
 def combine(a: dict, b: dict) -> dict:
     pages = a["pages"] + b["pages"]
     labels = a.get("labels", [None] * len(a["pages"])) + b.get("labels", [None] * len(b["pages"]))
-    return {**a, "pages": pages, "labels": labels,
+    headings = ((a.get("headings") or [a.get("heading", "")] * len(a["pages"]))
+                + (b.get("headings") or [b.get("heading", "")] * len(b["pages"])))
+    main = b if len(b["text"]) >= len(a["text"]) else a  # the content slide, not the short one
+    return {**a, "pages": pages, "labels": labels, "headings": headings,
             "text": (a["text"] + " " + b["text"]).strip(),
+            "heading": main.get("heading") or a.get("heading") or b.get("heading") or "",
             "cite": cite_tag(a["lecture"], pages, labels)}
+
+
+def slide_heading(page) -> str:
+    """The slide's title: the largest text in the top 40% of the page. Stops at the first gap,
+    so a big-font statement further down the slide isn't added to it."""
+    height = page.rect.height
+    spans = []
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            for s in line["spans"]:
+                text = s["text"].strip()
+                x0, y0, _, y1 = s["bbox"]
+                if text and y0 < 0.4 * height and re.search(r"[^\W\d_]", text):  # has letters
+                    spans.append((s["size"], y0, x0, y1, text))
+    if not spans:
+        return ""
+    biggest = max(s[0] for s in spans)
+    big = sorted((s for s in spans if s[0] >= biggest - 1.5), key=lambda s: (round(s[1] / 4), s[2]))
+    parts, bottom = [], None
+    for size, y0, _, y1, text in big:
+        if bottom is not None and y0 - bottom > 0.5 * size:
+            break
+        parts.append(text)
+        bottom = y1 if bottom is None else max(bottom, y1)
+    return clean(" ".join(parts))
+
+
+LECTURE_WORDS = {"lesson", "lecture", "week", "chapter", "unit", "part", "session"}
 
 
 def printed_number(page) -> int | None:
@@ -60,7 +92,11 @@ def printed_number(page) -> int | None:
         m = re.search(r"(\d{1,3})\s*/\s*\d{1,3}$", " ".join(w[4] for w in band))
         if m:
             return int(m.group(1))
-        digits = [w for w in band if re.fullmatch(r"\d{1,3}", w[4])]
+        # skip "Lesson 7" / "Week 3" inside the footer text: on a slide without its own number,
+        # "Lesson 7 / Testing" would otherwise read as slide 7. A number that ends the footer
+        # is still the slide number ("Industry special lecture 12" is slide 12).
+        digits = [w for j, w in enumerate(band) if re.fullmatch(r"\d{1,3}", w[4])
+                  and not (0 < j < len(band) - 1 and band[j - 1][4].lower() in LECTURE_WORDS)]
         if digits:
             return int(max(digits, key=lambda w: w[0])[4])
     return None
@@ -107,11 +143,14 @@ def extract_slides(ref: str, data: bytes | None = None, lec: str | None = None) 
         labels = slide_labels(doc)
         for page_no, page in enumerate(doc, start=1):
             label = labels[page_no - 1]
+            head = slide_heading(page)
             slides.append({
                 "lecture": lec, "title": title, "pdf": ref,
                 "pages": [page_no],    # position in the PDF (used to render the image)
                 "labels": [label],     # number printed on the slide, None if unknown
                 "text": clean(page.get_text()),
+                "heading": head,       # the slide's own title, shown in the website
+                "headings": [head],    # one per page (several after merge_short)
                 "cite": cite_tag(lec, [page_no], [label]),
             })
     return slides

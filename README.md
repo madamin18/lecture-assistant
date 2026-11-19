@@ -16,17 +16,22 @@ Only the slide PDFs are published; the lab handouts, readings and quiz keys from
 packages are not.
 
 Three tabs:
-- **Ask** (English or 한국어): chat with the lecture slides. Each answer shows how it was found
-  (translation, hybrid search, which model answered, timings), the cited slides as images, a
-  relevance table of the other slides searched, thumbs up/down, and "Ask next" follow-ups built
-  from the other slides found. The sidebar can limit the search to chosen lectures.
+- **Ask** (English or 한국어): chat with the lecture slides. Citations appear as badges in the
+  answer. Each answer shows how it was found (translation, hybrid search, which model answered,
+  timings), the cited slides as images, a relevance table of the other slides searched, thumbs
+  up/down, and "Ask next" follow-ups named after the titles of the other slides found. The
+  sidebar can limit the search to chosen lectures, and "Save chat" downloads the chat as
+  Markdown study notes with the slides each answer cites.
 - **Practice exam**: exam-style questions (multiple choice and/or short answer) from the slides,
   in English, Korean or the slides' language. Picking an answer shows right away whether it is
   correct, with an explanation and the source slide; short answers reveal a model answer and
-  the student grades themselves. A live score and progress bar, balloons at 80%+, "Try again",
-  and a printable study sheet (questions first, answer key at the end).
-- **Browse lectures**: a card per lecture with its cover slide, a slide viewer, and shortcuts to
-  ask about a slide, search one lecture, or get a 5-question quiz on it.
+  the student grades themselves. A missed question has an "Explain this to me" button that asks
+  the assistant about it (searching only that lecture). A live score and progress bar, balloons
+  at 80%+, "Retry the ones I missed", "Try again", and a printable study sheet (questions first,
+  answer key at the end).
+- **Browse lectures**: a card per lecture with its cover slide, a slide viewer whose slider shows
+  each slide's title, and shortcuts to ask about a slide, search one lecture, or get a
+  5-question quiz on it.
 
 Styling lives in `.streamlit/config.toml` (light and dark theme, fonts, radii); no custom CSS.
 
@@ -55,13 +60,17 @@ instant too. Follow-up questions are always answered fresh.
 ## How it works
 1. **Ingest** (`ingest.py`): one chunk per slide; slides with under 80 characters (titles,
    diagrams) are merged into the next slide. Chunks are embedded with
-   `intfloat/multilingual-e5-small` (free, runs locally, English + Korean).
+   `intfloat/multilingual-e5-small` (free, runs locally, English + Korean). Each slide's title is
+   read from the PDF as the largest text near the top (found for all 491 slides); the website
+   uses it for follow-up suggestions, the slide viewer and the saved notes.
 2. **Slide numbers**: citations use the number printed in each slide's footer, because exported
    decks often skip hidden slides (in L01, PDF page 56 is printed as slide 59). The right-most
    number in the bottom 15% of the page is used, and only if it is found on at least 70% of the
    pages and always increases; otherwise citations fall back to PDF pages (`[L01 p.56]`).
    A missing number is filled in only when its neighbours leave one possibility (an unnumbered
-   title page before slide 2 is slide 1). Slide images are captioned with both numbers, e.g.
+   title page before slide 2 is slide 1). A number right after "Lesson"/"Week" inside the footer
+   text is skipped, so "Lesson 7 / Testing" on an unnumbered slide isn't read as slide 7, while
+   L07's footer "Lesson 07 | Industry special lecture 12" still gives slide 12. Slide images are captioned with both numbers, e.g.
    "Generative AI Systems · slide 59 (PDF page 56)".
 3. **Search** (`rag.py`): hybrid search. Meaning-based search (embeddings) and keyword search
    (BM25) are combined with reciprocal rank fusion. Keyword search finds slides that share a rare
@@ -78,7 +87,7 @@ instant too. Follow-up questions are always answered fresh.
    in the lecture slides I have." (or 강의 슬라이드에서 다루지 않는 내용입니다.) without calling
    the LLM. Otherwise the prompt also tells the model to refuse when the excerpts don't contain
    the answer.
-6. **Answer**: the top 5 slides go to the LLM with rules to cite every sentence. The answer is
+6. **Answer**: the top 8 slides (`TOP_K`) go to the LLM with rules to cite every sentence. The answer is
    streamed (text appears as it's written). The last two exchanges are included, so follow-ups
    such as "can you give an example of that?" work.
 7. **Practice questions**: slides are sampled evenly across the lecture (or the slides closest to
@@ -98,9 +107,27 @@ instant too. Follow-up questions are always answered fresh.
 - A model that times out (`LLM_TIMEOUT` = 20 s) or is overloaded (503) is skipped for
   `COOLDOWN_SECONDS` = 120 s; a per-minute rate limit (429) for 15 s. If every model fails
   quickly, the app waits 2 s and tries once more before saying the service is busy.
-- The app reloads `rag.py`, `config.py` and `ingest.py` when they change, so a deploy that only
-  touches those files takes effect without rebooting the server.
+- A model that returns an empty reply (e.g. blocked by a safety filter) is treated like a failure,
+  so the next model answers instead of the student getting a blank answer.
+- The app reloads `rag.py`, `config.py`, `ingest.py`, the demo index and the saved answers when
+  they change, so a deploy that only touches those files takes effect without rebooting the
+  server.
+- All visitors share one search object, so it keeps no per-question state: each search fills in
+  its own `info` dict (translation, lectures searched, model), and two people asking at once
+  can't see each other's "How I found this" steps.
 - `python check_models.py` shows which models currently answer with your key.
+
+## Tests
+```bash
+pip install pytest
+python -m pytest -q
+```
+47 tests in `tests/` cover keyword search, lecture mentions, language detection, slide titles and
+footer numbers (on PDFs generated in the test), merging, the lecture filter, translation of Korean
+questions, refusals, model fallback and cooldowns, streaming, practice-question checks and the
+saved-answer cache. They use a fake embedder and a fake AI client, so they run in under a second
+with no API key, no internet and no PyTorch. GitHub Actions runs them on every push
+(`.github/workflows/tests.yml`).
 
 ## How the website handles uploads
 - Visitors upload their own lecture PDFs in the sidebar. Files are indexed in memory for that

@@ -64,10 +64,11 @@ def main():
     rows, gen = [], []
     for lectures, lang in runs:
         t0 = time.time()
-        qs = rag.generate_quiz(5, "mixed", lectures, "", lang)
+        info = {}
+        qs = rag.generate_quiz(5, "mixed", lectures, "", lang, info=info)
         gen.append({"lectures": lectures, "lang": lang, "requested": 5,
                     "delivered": len(qs or []), "seconds": round(time.time() - t0, 1),
-                    "model": rag.last_model})
+                    "model": info.get("model")})
         print(f"quiz {lectures or 'all'} ({lang}): {len(qs or [])} questions in {gen[-1]['seconds']} s")
         for q in qs or []:
             time.sleep(args.delay)

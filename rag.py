@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 import pymupdf as fitz
 from openai import OpenAI, APIStatusError, APIConnectionError
-from sentence_transformers import SentenceTransformer
 
 import config
 from ingest import open_pdf
@@ -185,6 +184,10 @@ class SlideRAG:
     SlideRAG(chunks=..., emb=...,      uses an index built in memory (uploaded PDFs);
              pdf_data={name: bytes})   pdf_data lets the UI render those slides
     Pass embedder/client to share one copy between many SlideRAG objects (the web app does).
+
+    The web app shares one SlideRAG between all visitors, so it keeps no per-question state.
+    Methods that the UI explains ("How I found this") take an optional `info` dict and fill it
+    in: translation, lectures searched, and the model that answered.
     """
 
     def __init__(self, index_dir: str = config.INDEX_DIR, chunks=None, emb=None,
@@ -199,10 +202,11 @@ class SlideRAG:
         self.chunk_lectures = np.array([c["lecture"] for c in chunks])
         self.lecture_tags = set(self.chunk_lectures.tolist())
         self.pdf_data = pdf_data or {}  # uploaded file name -> PDF bytes
-        self.model = embedder or SentenceTransformer(config.EMBED_MODEL)
+        if embedder is None:
+            from sentence_transformers import SentenceTransformer  # slow import: only if needed
+            embedder = SentenceTransformer(config.EMBED_MODEL)
+        self.model = embedder
         self.client = client or make_client()
-        self.last_model = None  # which model produced the last answer
-        self.last_search = {}    # what the last search did (translation, lectures searched)
 
     @property
     def lectures(self) -> list:
@@ -214,12 +218,13 @@ class SlideRAG:
 
     # ---------- search ----------
     def retrieve(self, question: str, k: int = config.TOP_K, previous: str | None = None,
-                 translation: str | None = None, only=None) -> list:
+                 translation: str | None = None, only=None, info: dict | None = None) -> list:
         """Top-k slides. `previous` = the student's previous question, used so follow-ups like
         "explain that more simply" still find the right slides. `translation` = the question in
         the slides' language (see translate()). `only` = lecture tags to search (e.g. a filter
         chosen in the UI); a lecture named in the question takes precedence.
         Each hit's "score" is the meaning-based (cosine) similarity, used for the refusal check."""
+        info = {} if info is None else info
         if not self.chunks:
             return []
         queries = [question] + ([translation] if translation else []) \
@@ -241,34 +246,35 @@ class SlideRAG:
         allowed = named or ({t for t in only if t in self.lecture_tags} if only else set())
         if allowed:
             fused = np.where(np.isin(self.chunk_lectures, list(allowed)), fused, -np.inf)
-        self.last_search["lectures"] = sorted(allowed)
-        self.last_search["named"] = bool(named)
-        top = np.argsort(-fused)[:k]
+        info.update(lectures=sorted(allowed), named=bool(named))
+        # isfinite: when the allowed lectures have fewer than k slides, don't pad with others
+        top = [i for i in np.argsort(-fused)[:k] if np.isfinite(fused[i])]
         return [{**self.chunks[i], "score": float(dense[i])} for i in top]
 
     def search(self, question: str, k: int = config.TOP_K, previous: str | None = None,
-               only=None):
+               only=None, info: dict | None = None):
         """retrieve(), first translating the question if it isn't in the slides' language.
         Returns (hits, min_score): the similarity needed to answer instead of refusing."""
+        info = {} if info is None else info
         translation = None
         cross_language = language(question) != self.slide_lang
         if cross_language and config.TRANSLATE_QUERIES:
             translation = self.translate(question, previous)
-        self.last_search = {"translation": translation}
-        hits = self.retrieve(question, k, previous, translation, only)
+        info["translation"] = translation
+        hits = self.retrieve(question, k, previous, translation, only, info)
         # Untranslated cross-language questions score lower, so don't refuse them on score alone;
         # the prompt's refusal rule still applies.
         return hits, (0 if cross_language and not translation else config.MIN_SCORE)
 
     # ---------- answering ----------
     def prepare(self, question: str, k: int = config.TOP_K, history: list | None = None,
-                only=None):
+                only=None, info: dict | None = None):
         """Search and build the LLM messages. Returns (messages, hits); messages is None when
         no slide is close enough, so the caller should refuse without calling the LLM.
         history = earlier chat as [{"role": "user"|"assistant", "content": ...}]."""
         history = [m for m in (history or []) if m.get("content")][-4:]  # last 2 exchanges
         previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
-        hits, min_score = self.search(question, k, previous, only)
+        hits, min_score = self.search(question, k, previous, only, info)
         if not hits or max(h["score"] for h in hits) < min_score:
             return None, hits
 
@@ -282,13 +288,16 @@ class SlideRAG:
                                     f"(Answer in {LANGUAGE_NAMES[language(question)]}.)"})
         return messages, hits
 
-    def answer(self, question: str, k: int = config.TOP_K, history: list | None = None):
-        """Full answer in one go (terminal + evaluation). Returns (text, hits)."""
-        self.last_model = None
-        messages, hits = self.prepare(question, k, history)
+    def answer(self, question: str, k: int = config.TOP_K, history: list | None = None,
+               info: dict | None = None):
+        """Full answer in one go (terminal + evaluation). Returns (text, hits).
+        info["model"] is the model that answered (None: refused without asking the LLM)."""
+        info = {} if info is None else info
+        info["model"] = None
+        messages, hits = self.prepare(question, k, history, info=info)
         if messages is None:
             return refusal_for(question), hits
-        reply = self.chat(messages)
+        reply = self.chat(messages, info=info)
         return (reply if reply is not None else config.BUSY_MESSAGE), hits
 
     def translate(self, question: str, previous: str | None = None) -> str | None:
@@ -297,7 +306,6 @@ class SlideRAG:
         text = f"Previous question: {previous}\nQuestion: {question}" if previous else question
         reply = self.chat([{"role": "system", "content": prompt},
                            {"role": "user", "content": text}], timeout=10)
-        self.last_model = None  # the UI shows the model that wrote the answer, not this
         return reply or None
 
     # ---------- LLM calls with fallback ----------
@@ -328,23 +336,30 @@ class SlideRAG:
             pause = config.COOLDOWN_SECONDS
         _cooldown_until[model] = time.time() + pause
 
-    def chat(self, messages: list, **kwargs):
+    def chat(self, messages: list, info: dict | None = None, **kwargs):
         """Call the main model, falling back to the others. Returns None if all are busy.
-        kwargs go to the API (e.g. temperature, response_format, timeout)."""
+        Sets info["model"] to the model that answered. kwargs go to the API (e.g. temperature,
+        response_format, timeout)."""
         kwargs.setdefault("temperature", 0)
         for model in self._attempts():
             try:
                 resp = self.client.chat.completions.create(model=model, messages=messages, **kwargs)
-                self.last_model = model
-                return (resp.choices[0].message.content or "").strip()
             except (APIStatusError, APIConnectionError) as e:
                 self._failed(model, e)
+                continue
+            text = (resp.choices[0].message.content or "").strip() if resp.choices else ""
+            if not text:  # empty reply (e.g. blocked by a safety filter): try the next model
+                print(f"[warn] {model} returned an empty reply, trying next model...")
+                continue
+            if info is not None:
+                info["model"] = model
+            return text
         return None
 
-    def stream(self, messages: list):
+    def stream(self, messages: list, info: dict | None = None):
         """Like chat(), but yields the answer piece by piece as it is written.
-        Falls back to the next model if one fails before writing anything."""
-        self.last_model = None
+        Falls back to the next model if one fails (or stays silent) before writing anything.
+        Sets info["model"] once a model starts answering."""
         for model in self._attempts():
             try:
                 chunks = iter(self.client.chat.completions.create(
@@ -357,9 +372,12 @@ class SlideRAG:
             except (APIStatusError, APIConnectionError) as e:
                 self._failed(model, e)
                 continue
-            self.last_model = model
-            if first:
-                yield first
+            if first is None:
+                print(f"[warn] {model} returned an empty reply, trying next model...")
+                continue
+            if info is not None:
+                info["model"] = model
+            yield first
             try:
                 for chunk in chunks:
                     if chunk.choices and chunk.choices[0].delta.content:
@@ -379,7 +397,7 @@ class SlideRAG:
             return pool
         if topic.strip():
             order = {(c["pdf"], c["cite"]): i for i, c in enumerate(pool)}
-            ranked = [h for h in self.retrieve(topic, k=len(self.chunks))
+            ranked = [h for h in self.search(topic, k=len(self.chunks))[0]  # translates if needed
                       if (h["pdf"], h["cite"]) in order][:2 * n]
             picked = random.sample(ranked, min(n, len(ranked)))
             return sorted(picked, key=lambda c: order[(c["pdf"], c["cite"])])
@@ -388,7 +406,7 @@ class SlideRAG:
         return [pool[random.choice(list(p))] for p in parts if len(p)]
 
     def generate_quiz(self, n: int = 5, kind: str = "mixed", lectures=None, topic: str = "",
-                      lang: str = "same"):
+                      lang: str = "same", info: dict | None = None):
         """Practice questions from the slides. Returns a list of question dicts, each with the
         slide it came from under "hit"; [] if the model gave nothing usable; None if busy."""
         slides = self.quiz_slides(lectures, topic, n=min(max(n + 3, 8), config.QUIZ_MAX_SLIDES))
@@ -402,7 +420,7 @@ class SlideRAG:
                 n=n + extra, mix=QUIZ_MIX[kind], language=QUIZ_LANGUAGE[lang])},
             {"role": "user", "content": f"Slide excerpts:\n{context}{focus}"},
         ]
-        reply = self.chat(messages, temperature=0.8, timeout=config.QUIZ_TIMEOUT,
+        reply = self.chat(messages, info, temperature=0.8, timeout=config.QUIZ_TIMEOUT,
                           response_format={"type": "json_object"})
         if reply is None:
             return None
@@ -479,6 +497,17 @@ def cited_hits(answer: str, hits: list) -> list:
     return [h for h in hits if re.search(re.escape(h["cite"]) + r"(?![\d-])", answer)]
 
 
+# "[L03 slide 14]", "[L03 p.5-6]", and a few tags in one bracket: "[L01 slide 3; L01 slide 9]"
+_TAG = r"[^\[\]\n;,]+? (?:slide |p\.)\d+(?:-\d+)?"
+CITATION = re.compile(rf"\[({_TAG}(?:\s*[;,]\s*{_TAG})*)\]")
+
+
+def badge_citations(answer: str) -> str:
+    """Markdown with each citation drawn as a small badge (Streamlit's :color-badge[...])."""
+    return CITATION.sub(lambda m: " ".join(
+        f":violet-badge[{t.strip()}]" for t in re.split(r"[;,]", m.group(1))), answer)
+
+
 def render_page(pdf_ref: str, page_no: int, data: bytes | None = None, zoom: float = 1.2) -> bytes:
     """PNG image of one slide. pdf_ref is a path on disk, or an upload's name when data is given."""
     if data is None:
@@ -491,8 +520,10 @@ def render_page(pdf_ref: str, page_no: int, data: bytes | None = None, zoom: flo
 if __name__ == "__main__":  # quick terminal test: python rag.py "What is RAG?"
     import sys
     rag = SlideRAG()
-    ans, hits = rag.answer(" ".join(sys.argv[1:]) or "What is retrieval-augmented generation?")
-    print(f"(model: {rag.last_model})\n")
+    info = {}
+    ans, hits = rag.answer(" ".join(sys.argv[1:]) or "What is retrieval-augmented generation?",
+                           info=info)
+    print(f"(model: {info['model']})\n")
     print(ans, "\n\nRetrieved:")
     for h in hits:
         print(f"  [{h['cite']}] score={h['score']:.3f}")

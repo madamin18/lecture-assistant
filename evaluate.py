@@ -142,7 +142,8 @@ def main():
     for i, t in enumerate(tests):
         if i and args.delay:
             time.sleep(args.delay)
-        answer, hits = rag.answer(t["question"], args.k)
+        info = {}
+        answer, hits = rag.answer(t["question"], args.k, info=info)
         expected = parse_expected(t.get("expected", []))
         refused = config.REFUSAL in answer or config.REFUSAL_KO in answer
         busy = answer == config.BUSY_MESSAGE
@@ -150,7 +151,7 @@ def main():
                "question": t["question"], "answer": answer, "retrieved": [h["cite"] for h in hits],
                "top_score": round(max(h["score"] for h in hits), 4) if hits else None,
                "refused": refused,
-               "busy": busy, "model": rag.last_model}  # None = LLM not called (threshold refusal)
+               "busy": busy, "model": info["model"]}  # None = LLM not called (threshold refusal)
 
         if busy:  # no real answer: don't count it as right or wrong
             rows.append(row)
