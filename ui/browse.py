@@ -7,6 +7,13 @@ from ui import i18n
 from ui.i18n import t
 
 
+def _go_to_page(key: str, pages: list[int], step: int) -> None:
+    """Move the viewer by `step` pages, staying inside the valid range."""
+    current = st.session_state.get(key, pages[0])
+    idx = pages.index(current) if current in pages else 0
+    st.session_state[key] = pages[max(0, min(len(pages) - 1, idx + step))]
+
+
 def _viewer(tag: str):
     title = dict(c.rag().lectures)[tag]
     pdf = c.lecture_file(tag)
@@ -18,8 +25,17 @@ def _viewer(tag: str):
         label, _, name = pages.get(p, (None, None, ""))
         return f"{label or p} · {c.shorten(name, 40)}" if name else t("slide_option", n=label or p)
 
-    page = st.select_slider(t("slide_label"), options=list(range(1, total + 1)),
-                            key=f"viewer_{tag}", format_func=slide_name)
+    page_values = list(range(1, total + 1))
+    key = f"viewer_{tag}"
+    current = st.session_state.get(key, page_values[0])
+    idx = page_values.index(current) if current in page_values else 0
+    prev_col, next_col = st.columns(2)
+    prev_col.button(t("prev_slide"), key=f"prev_{tag}", on_click=_go_to_page,
+                    args=(key, page_values, -1), disabled=idx == 0)
+    next_col.button(t("next_slide"), key=f"next_{tag}", on_click=_go_to_page,
+                    args=(key, page_values, 1), disabled=idx == len(page_values) - 1)
+    page = st.select_slider(t("slide_label"), options=page_values,
+                            key=key, format_func=slide_name)
     label, chunk, name = pages.get(page, (None, None, ""))
     with st.container(horizontal=True):  # above the slide, so no scrolling is needed
         if chunk is not None and st.button(t("ask_slide"), type="primary",
