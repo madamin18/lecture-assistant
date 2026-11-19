@@ -48,8 +48,11 @@ Four tabs:
 
 **Mini games** ("Bored? Play a game" at the bottom of the sidebar) for a short break, both
 original and built from the course's vocabulary:
-- **Citation Runner**: an endless runner. A robot jumps over HTTP error blocks (404, 429, 503),
-  stays on the ground under the "hallucination" ghosts, and collects citation badges for +25.
+- **Citation Runner**: an endless runner. A robot jumps over software bugs and traffic cones,
+  stays on the ground under the "hallucination" ghosts, and collects gold stars for +25. The start
+  screen shows what each character means; the speed starts calm (230 px/s) and rises slowly to
+  540 px/s, after players found the first version (320 -> 760 px/s, numbered error blocks and
+  green badges) too fast and hard to read.
 - **Term Match**: a memory game. Flip cards to match 8 course terms (hallucination, recall@k,
   chunk overlap, agent loop, ...) with their meaning, in the interface language.
 

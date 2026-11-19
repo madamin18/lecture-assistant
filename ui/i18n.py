@@ -283,8 +283,11 @@ EN = {
     "games_pick": "Game",
     "game_runner": ":material/directions_run: Citation Runner",
     "game_match": ":material/style: Term Match",
-    "runner_help": "Jump over the error blocks (Space, ↑ or tap), stay on the ground under the "
-                   "hallucination ghosts, and collect citation badges for +25.",
+    "runner_help": "Jump over the bugs and traffic cones (Space, ↑ or tap), stay on the ground "
+                   "under the ghosts, and grab the stars for +25. It speeds up slowly.",
+    "runner_jump": "Jump over",
+    "runner_under": "Run under",
+    "runner_bonus": "Collect: +25",
     "runner_start": "Click here, then press Space (or tap) to start",
     "runner_over": "Game over",
     "runner_restart": "Space or tap to play again",
@@ -542,8 +545,11 @@ RU = {
     "games_pick": "Игра",
     "game_runner": ":material/directions_run: Бег за цитатами",
     "game_match": ":material/style: Пары терминов",
-    "runner_help": "Перепрыгивайте блоки с ошибками (пробел, ↑ или касание), оставайтесь на "
-                   "земле под призраками-галлюцинациями и собирайте значки цитат (+25).",
+    "runner_help": "Перепрыгивайте жуков и конусы (пробел, ↑ или касание), оставайтесь на "
+                   "земле под призраками и собирайте звёзды (+25). Скорость растёт постепенно.",
+    "runner_jump": "Перепрыгнуть",
+    "runner_under": "Пробежать под",
+    "runner_bonus": "Собрать: +25",
     "runner_start": "Нажмите сюда, затем пробел (или коснитесь), чтобы начать",
     "runner_over": "Игра окончена",
     "runner_restart": "Пробел или касание — сыграть снова",
@@ -803,8 +809,11 @@ KO = {
     "games_pick": "게임",
     "game_runner": ":material/directions_run: 인용 러너",
     "game_match": ":material/style: 용어 짝 맞추기",
-    "runner_help": "오류 블록은 뛰어넘고(스페이스, ↑ 또는 탭), 환각 유령 아래에서는 땅에 머무르며, "
-                   "인용 배지를 모으면 +25점입니다.",
+    "runner_help": "벌레와 고깔은 뛰어넘고(스페이스, ↑ 또는 탭), 유령 아래에서는 땅에 머무르고, "
+                   "별을 모으면 +25점입니다. 속도는 천천히 빨라집니다.",
+    "runner_jump": "뛰어넘기",
+    "runner_under": "아래로 지나가기",
+    "runner_bonus": "모으기: +25",
     "runner_start": "여기를 클릭한 뒤 스페이스(또는 탭)를 눌러 시작",
     "runner_over": "게임 오버",
     "runner_restart": "스페이스 또는 탭으로 다시 하기",
