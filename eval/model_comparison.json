@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-19",
+  "judge": "groq:openai/gpt-oss-20b",
+  "k": 8,
+  "n_questions": 47,
+  "models": [
+    {
+      "model": "gemini-3.5-flash-lite",
+      "answer_correct_%": 97.6,
+      "answer_partial_%": 2.4,
+      "citation_accuracy_%": 100.0,
+      "made_up_citations": 0,
+      "false_refusal_%": 0.0,
+      "correct_refusal_%": 100.0,
+      "avg_seconds": 2.7,
+      "no_answer": 0
+    },
+    {
+      "model": "groq:openai/gpt-oss-120b",
+      "answer_correct_%": 100.0,
+      "answer_partial_%": 0.0,
+      "citation_accuracy_%": 100.0,
+      "made_up_citations": 0,
+      "false_refusal_%": 0.0,
+      "correct_refusal_%": 100.0,
+      "avg_seconds": 1.0,
+      "no_answer": 0
+    },
+    {
+      "model": "groq:qwen/qwen3.8-27b",
+      "answer_correct_%": 97.6,
+      "answer_partial_%": 0.0,
+      "citation_accuracy_%": 100.0,
+      "made_up_citations": 0,
+      "false_refusal_%": 0.0,
+      "correct_refusal_%": 100.0,
+      "avg_seconds": 0.5,
+      "no_answer": 0
+    }
+  ],
+  "rescored": "2026-11-19"
+}

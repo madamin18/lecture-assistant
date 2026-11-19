@@ -93,6 +93,8 @@ TRANSLATE_QUERIES = True
 
 REFUSAL = "This isn't covered in the lecture slides I have."
 REFUSAL_KO = "강의 슬라이드에서 다루지 않는 내용입니다."
+REFUSAL_RU = "Этого нет в слайдах лекций, которые у меня есть."
+REFUSALS = {"en": REFUSAL, "ko": REFUSAL_KO, "ru": REFUSAL_RU}  # by the question's language
 BUSY_MESSAGE = "The AI service is busy right now. Please try again in a minute."
 
 # Practice questions ("Practice exam" tab)

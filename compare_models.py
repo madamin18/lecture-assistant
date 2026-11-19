@@ -4,6 +4,7 @@ same slides (searched once), and one fixed judge grades every answer, so only th
 Run:  python compare_models.py gemini-3.5-flash-lite groq:qwen/qwen3.8-27b groq:openai/gpt-oss-120b
       python compare_models.py --auto            (every model in the Auto chain with a key)
       python compare_models.py ... --judge groq:openai/gpt-oss-120b --limit 10
+      python compare_models.py --rescore           (recount from the saved answers)
 Writes eval/model_comparison.json (shown in the website's Compare models tab) and
 eval/model_answers.jsonl (every answer, for reading).
 
@@ -53,6 +54,60 @@ def ask(rag, messages, ref, delay, tries=4, **kwargs):
     return None, 0.0, "rate limit"
 
 
+def summarize(models: list, rows: dict) -> list:
+    summary = []
+    for m in models:
+        rs = [r for r in rows[m] if not r.get("error")]
+        ins = [r for r in rs if r["in_scope"]]
+        outs = [r for r in rs if not r["in_scope"]]
+        judged = [r["judge"] for r in ins if r.get("judge")]
+        secs = [r["seconds"] for r in rs if r.get("seconds")]
+        summary.append({
+            "model": m,
+            "answer_correct_%": pct([j == "CORRECT" for j in judged]),
+            "answer_partial_%": pct([j == "PARTIAL" for j in judged]),
+            "citation_accuracy_%": pct([r["citation_correct"] for r in ins]),
+            "made_up_citations": sum(r["made_up"] for r in rs),
+            "false_refusal_%": pct([r["refused"] for r in ins]),
+            "correct_refusal_%": pct([r["refused"] for r in outs]),
+            "avg_seconds": round(statistics.mean(secs), 1) if secs else None,
+            "no_answer": len(rows[m]) - len(rs),
+        })
+    return summary
+
+
+def rescore(args):
+    """Recompute the citation and refusal numbers from eval/model_answers.jsonl with the current
+    code and test set (e.g. after fixing a relevance judgment), keeping the judge's verdicts.
+    Only searches again (to know which slides each model was given): no answers are asked for."""
+    old = json.loads(Path("eval/model_comparison.json").read_text(encoding="utf-8"))
+    answers = [json.loads(l) for l in Path("eval/model_answers.jsonl").read_text(
+        encoding="utf-8").splitlines() if l.strip()]
+    tests = {t["id"]: t for t in load_tests(args.test)}
+    rag = SlideRAG()
+    given = {}
+    models = [m["model"] for m in old["models"]]
+    rows = {m: [] for m in models}
+    for a in answers:
+        t = tests[a["id"]]
+        if a["id"] not in given:
+            given[a["id"]] = rag.search(t["question"], old["k"])[0]
+        expected = parse_expected(t.get("expected", []))
+        f = citation_facts(a["answer"], given[a["id"]])
+        a.update(in_scope=bool(expected), refused=f["refused"], made_up=f["made_up"],
+                 retrieved=[h["cite"] for h in given[a["id"]]])
+        if expected:
+            a["citation_correct"] = bool(cited_slides(a["answer"], rag) & set(expected))
+        rows[a["model"]].append(a)
+    old["models"] = summarize(models, rows)
+    old["rescored"] = date.today().isoformat()
+    Path("eval/model_comparison.json").write_text(json.dumps(old, indent=2), encoding="utf-8")
+    with open("eval/model_answers.jsonl", "w", encoding="utf-8") as f:
+        for a in answers:
+            f.write(json.dumps(a, ensure_ascii=False) + "\n")
+    print(json.dumps(old, indent=2))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("models", nargs="*", help='e.g. gemini-3.5-flash-lite "groq:qwen/qwen3.8-27b"')
@@ -62,7 +117,11 @@ def main():
     ap.add_argument("--k", type=int, default=config.TOP_K)
     ap.add_argument("--limit", type=int, default=0, help="only the first N questions (quick try)")
     ap.add_argument("--delay", type=float, default=3, help="seconds before each request")
+    ap.add_argument("--rescore", action="store_true",
+                    help="recompute the numbers from the saved answers (no new answers)")
     args = ap.parse_args()
+    if args.rescore:
+        return rescore(args)
     models = [canonical(m) for m in (auto_chain() if args.auto else args.models)]
     if len(models) < 1:
         raise SystemExit("Name the models to compare, or use --auto.")
@@ -89,7 +148,8 @@ def main():
                 rows[m].append(row)
                 continue
             f = citation_facts(text, hits)
-            row.update(refused=f["refused"], made_up=f["made_up"])
+            row.update(refused=f["refused"], made_up=f["made_up"],
+                       retrieved=[h["cite"] for h in hits])
             if expected:
                 row["citation_correct"] = bool(cited_slides(text, rag) & set(expected))
                 if t.get("reference") and not f["refused"]:
@@ -106,24 +166,7 @@ def main():
             rows[m].append(row)
             out_answers.append({"id": t["id"], "model": m, "answer": text, **row})
 
-    summary = []
-    for m in models:
-        rs = [r for r in rows[m] if not r.get("error")]
-        ins = [r for r in rs if r["in_scope"]]
-        outs = [r for r in rs if not r["in_scope"]]
-        judged = [r["judge"] for r in ins if r.get("judge")]
-        secs = [r["seconds"] for r in rs if r.get("seconds")]
-        summary.append({
-            "model": m,
-            "answer_correct_%": pct([j == "CORRECT" for j in judged]),
-            "answer_partial_%": pct([j == "PARTIAL" for j in judged]),
-            "citation_accuracy_%": pct([r["citation_correct"] for r in ins]),
-            "made_up_citations": sum(r["made_up"] for r in rs),
-            "false_refusal_%": pct([r["refused"] for r in ins]),
-            "correct_refusal_%": pct([r["refused"] for r in outs]),
-            "avg_seconds": round(statistics.mean(secs), 1) if secs else None,
-            "no_answer": len(rows[m]) - len(rs),
-        })
+    summary = summarize(models, rows)
     result = {"date": date.today().isoformat(), "judge": judge_ref, "k": args.k,
               "n_questions": len(tests), "models": summary}
     Path("eval").mkdir(exist_ok=True)

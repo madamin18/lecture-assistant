@@ -37,7 +37,7 @@ lecture slides written in {language}. Keep technical terms. If it is a follow-up
 the previous question ("that", "it", "more"), write it as a standalone question.
 Reply with the translated question only."""
 
-LANGUAGE_NAMES = {"en": "English", "ko": "Korean"}
+LANGUAGE_NAMES = {"en": "English", "ko": "Korean", "ru": "Russian"}
 
 QUIZ_PROMPT = """You write exam practice questions for university students, using ONLY the
 lecture slide excerpts provided. Every question must be answerable from the slide it cites.
@@ -66,6 +66,8 @@ QUIZ_LANGUAGE = {
     "en": "Write everything (questions, options, answers, explanations) in English.",
     "ko": "Write everything (questions, options, answers, explanations) in Korean. Keep key "
           "technical terms from the slides in parentheses, e.g. 환각(hallucination).",
+    "ru": "Write everything (questions, options, answers, explanations) in Russian. Keep key "
+          "technical terms from the slides in parentheses, e.g. галлюцинация (hallucination).",
 }
 
 QUIZ_MIX = {
@@ -106,14 +108,19 @@ def tokenize(text: str) -> list:
 
 
 def language(text: str) -> str:
-    """'ko' if most letters are Hangul, else 'en'."""
+    """'ko' if many letters are Hangul, 'ru' if many are Cyrillic, else 'en'."""
     letters = [ch for ch in text if ch.isalpha()]
-    hangul = sum("\uac00" <= ch <= "\ud7a3" for ch in letters)
-    return "ko" if letters and hangul / len(letters) > 0.3 else "en"
+    if not letters:
+        return "en"
+    if sum("\uac00" <= ch <= "\ud7a3" for ch in letters) / len(letters) > 0.3:
+        return "ko"
+    if sum("\u0400" <= ch <= "\u04ff" for ch in letters) / len(letters) > 0.3:
+        return "ru"
+    return "en"
 
 
 def refusal_for(question: str) -> str:
-    return config.REFUSAL_KO if language(question) == "ko" else config.REFUSAL
+    return config.REFUSALS[language(question)]
 
 
 # "Lesson 1", "lecture 03", "L05", "1강", "3차시". A bare "L" needs two digits, so terms like
@@ -636,31 +643,43 @@ def find_slide(cite: str, by_cite: dict, slides: list):
     return None
 
 
+def normalize_tags(answer: str) -> str:
+    """'L01 slide 06' -> 'L01 slide 6' (some models zero-pad the numbers)."""
+    return re.sub(r"\b(slide |p\.)0+(?=\d)", r"\1", answer)
+
+
 def cited_hits(answer: str, hits: list) -> list:
     """The retrieved slides the answer actually cites, in the order they were retrieved."""
+    answer = normalize_tags(answer)
     # (?![\d-]) stops "L01 p.1" from matching inside "L01 p.13" or "L01 p.1-2"
     return [h for h in hits if re.search(re.escape(h["cite"]) + r"(?![\d-])", answer)]
 
 
-# "[L03 slide 14]", "[L03 p.5-6]", and a few tags in one bracket: "[L01 slide 3; L01 slide 9]"
+# "[L03 slide 14]", "[ L03 slide 14 ]" (gpt-oss), "[L03 p.5-6]", and a few tags in one bracket:
+# "[L01 slide 3; L01 slide 9]"
 _TAG = r"[^\[\]\n;,]+? (?:slide |p\.)\d+(?:-\d+)?"
-CITATION = re.compile(rf"\[({_TAG}(?:\s*[;,]\s*{_TAG})*)\]")
+CITATION = re.compile(rf"\[\s*({_TAG}(?:\s*[;,]\s*{_TAG})*)\s*\]")
 
 
 def citation_facts(answer: str, hits: list) -> dict:
     """What can be checked without a judge: slides cited that the model was given, citations
     of slides it wasn't given (made up), whether it refused, and length."""
+    answer = normalize_tags(answer)
     tags = {t.strip() for m in CITATION.finditer(answer) for t in re.split(r"[;,]", m.group(1))}
     given = {h["cite"] for h in hits}
-    return {"cited": len(tags & given), "made_up": len(tags - given),
-            "refused": config.REFUSAL in answer or config.REFUSAL_KO in answer,
+    return {"cited": len(tags & given), "made_up": len(tags - given), "refused": refused(answer),
             "words": len(answer.split())}
+
+
+def refused(answer: str) -> bool:
+    return any(r in answer for r in config.REFUSALS.values())
 
 
 def badge_citations(answer: str) -> str:
     """Markdown with each citation drawn as a small badge (Streamlit's :color-badge[...])."""
     return CITATION.sub(lambda m: " ".join(
-        f":violet-badge[{t.strip()}]" for t in re.split(r"[;,]", m.group(1))), answer)
+        f":violet-badge[{t.strip()}]" for t in re.split(r"[;,]", m.group(1))),
+        normalize_tags(answer))
 
 
 def render_page(pdf_ref: str, page_no: int, data: bytes | None = None, zoom: float = 1.2) -> bytes:

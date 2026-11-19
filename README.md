@@ -158,6 +158,28 @@ accuracy, made-up citations, false and correct refusals, and speed, writes
 answer to `eval/model_answers.jsonl`. It paces requests and waits out per-minute rate limits;
 Groq's free tier allows about 4 answers a minute per model. The judge defaults to the main
 model; with `--judge` another model can grade, which avoids a judge favouring its own answers.
+`--rescore` recounts citations and refusals from the saved answers (after a test-set fix)
+without asking the models again.
+
+Results (Nov 19, 47 questions, 8 slides per answer, judge `groq:openai/gpt-oss-20b`, which is not
+one of the models compared):
+
+| | Gemini `3.5-flash-lite` | Groq `gpt-oss-120b` | Groq `qwen3.8-27b` |
+|---|---|---|---|
+| Answers graded correct (41 answerable) | 97.6% (+2.4% partial) | **100%** | 97.6% |
+| Cites a right slide | 100% | 100% | 100% |
+| Made-up citations | 0 | 0 | 0 |
+| False refusals / off-topic refused | 0% / 100% | 0% / 100% | 0% / 100% |
+| Average time per answer | 2.7 s | 1.0 s | **0.5 s** |
+
+The three are within one question of each other: Gemini's partial answer (q41) lists what a
+LangGraph reducer does without saying why, and Qwen wrote "150-character memo" where the slide
+says 150 words (q24). The real difference is speed: Groq is 3-5x faster. The judge comes from
+the same family as `gpt-oss-120b`, so its one-question lead is not conclusive. Checking the
+answers by hand also found two measuring problems, now fixed: gpt-oss writes `[ L01 slide 30 ]`
+(spaces inside the brackets), which the citation check didn't recognise, and Gemini once wrote
+`slide 06`; and q30's relevance judgments were missing L02 slide 22 ("does not verify
+correctness"), which all three models cited.
 
 ## Tests
 ```bash
@@ -195,14 +217,20 @@ with no API key, no internet and no PyTorch. GitHub Actions runs them on every p
   name is used as is, e.g. `Week 3.pdf` -> `[Week_3 slide 14]`.
 
 ## Evaluate
-`eval/test_set.jsonl` has 47 questions covering all 9 lectures: 40 answerable (direct,
-paraphrased, multi-slide; 29 in English, 11 in Korean) and 7 out of scope (4 English, 3 Korean).
+`eval/test_set.jsonl` has 47 questions covering all 9 lectures: 41 answerable (direct,
+paraphrased, multi-slide, one "trap"; 30 in English, 11 in Korean) and 6 out of scope (3 English,
+3 Korean).
 Each answerable question lists every PDF page that answers it ("relevance judgments", as in
 Lesson 6). When the other lectures were added, three judgments were widened after reading the
 slides that outranked the expected ones (e.g. L04 slide 13: "A similarity score helps rank
 candidates. Source text establishes claim support."), q18 (attention) moved from out of scope to
 answerable because L02 slide 26 covers it, and the lab-submission questions (q13, q24) now name
-Lesson 1 because four lectures have labs.
+Lesson 1 because four lectures have labs. q19 ("What are the Mobility Office's weekend opening
+hours?") was out of scope until Nov 19, but Lesson 1 slides 21-23 use exactly this as their
+hallucination example ("'open Saturday 09:00-17:00' → Supported ✗ (excerpt silent)"), so the
+grounded answer is "the slides don't give the hours; that claim would be unsupported", which is
+what the model answered in every run. It is now an answerable "trap" question: correct only if
+the answer invents no hours. The tables below are from before this change.
 ```bash
 python evaluate.py --retrieval-only               # search only (API used only to translate)
 python evaluate.py --retrieval-only --no-translate --no-hybrid   # older search, no API calls
@@ -210,7 +238,8 @@ python evaluate.py --name full_course --judge --delay 4   # full run; the LLM gr
 ```
 Options: `--delay N` waits between questions (avoids free-tier 429 errors),
 `--min-score 0.8` tries a different refusal threshold, `--no-hybrid` turns keyword search off,
-`--no-translate` turns question translation off. Questions where every model was busy are
+`--no-translate` turns question translation off, `--title-boost` counts slide titles twice in
+keyword search. Questions where every model was busy are
 reported as `n_busy_skipped` and left out of the percentages, so re-run if that number is high.
 Results, with an English/Korean breakdown: `eval/summary_*.json`.
 
@@ -244,9 +273,16 @@ model had enough context for every question it was asked.
 Korean questions only (8 answerable, `--retrieval-only`): the right slide was in the top 5 for
 50% of them without translation and 100% with it.
 
-The missed refusal (q19, Mobility Office weekend hours) is a near miss in every run: the slides
-use the Mobility Office as an example, and the model replies that the slides don't support any
-weekend hours, just not with the exact refusal sentence the evaluation checks for. q13 ("What
+The missed refusal in these tables is q19 (Mobility Office weekend hours), the question that
+turned out to be mislabeled (see above): the model correctly replied that the slides don't give
+the hours. A prompt that forced the exact refusal sentence first did not change q19 and added
+off-topic sentences to other refusals ("the slides cover laptop-loan limits" for a question
+about the final exam), so it was reverted; with q19 relabeled, all 6 off-topic questions were
+refused in that run, with 0% false refusals.
+
+**Tried and rejected: title boost.** Counting each slide's title twice in keyword search
+(`--title-boost`) put the right slide in the top 3 more often (36 -> 38 of 40) but dropped one
+question out of the top 8 (39 -> 38) and lowered MRR (0.840 -> 0.821), so it is off. q13 ("What
 must students submit for the lab?") went from a retrieval miss to a correct answer thanks to
 keyword search.
 

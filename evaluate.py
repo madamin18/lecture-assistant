@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 import config
+import rag as rag_module
 from rag import SlideRAG, cited_hits, language
 
 
@@ -150,7 +151,7 @@ def main():
         info = {}
         answer, hits = rag.answer(t["question"], args.k, info=info)
         expected = parse_expected(t.get("expected", []))
-        refused = config.REFUSAL in answer or config.REFUSAL_KO in answer
+        refused = rag_module.refused(answer)
         busy = answer == config.BUSY_MESSAGE
         row = {"id": t["id"], "type": t.get("type", ""), "lang": language(t["question"]),
                "question": t["question"], "answer": answer, "retrieved": [h["cite"] for h in hits],

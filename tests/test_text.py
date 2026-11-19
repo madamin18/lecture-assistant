@@ -1,8 +1,9 @@
 """Pure text helpers in rag.py: keywords, language, lecture mentions, citations."""
 import numpy as np
 
-from rag import (BM25, badge_citations, cited_hits, language, mentioned_lectures, retry_delay,
-                 rrf_ranks, tokenize)
+import config
+from rag import (BM25, badge_citations, citation_facts, cited_hits, language, mentioned_lectures,
+                 refusal_for, refused, retry_delay, rrf_ranks, tokenize)
 from conftest import status_error
 
 
@@ -52,6 +53,23 @@ def test_retry_delay_reads_gemini_429_body():
 def test_cited_hits_does_not_match_prefix():
     hits = [{"cite": "L01 p.1"}, {"cite": "L01 p.13"}, {"cite": "L02 slide 4"}]
     assert cited_hits("See [L01 p.13] and [L02 slide 4].", hits) == hits[1:]
+
+
+def test_citation_formats_from_other_models():
+    hits = [{"cite": "L01 slide 6"}, {"cite": "L01 slide 30"}]
+    # gpt-oss puts spaces inside the brackets; Gemini sometimes zero-pads the number
+    answer = "Tone is not evidence. [ L01 slide 30 ] Fluency hides gaps [L01 slide 06]."
+    assert cited_hits(answer, hits) == hits
+    facts = citation_facts(answer, hits)
+    assert (facts["cited"], facts["made_up"], facts["refused"]) == (2, 0, False)
+    assert badge_citations("[ L01 slide 30 ]") == ":violet-badge[L01 slide 30]"
+    assert citation_facts("Made up [L09 slide 99].", hits)["made_up"] == 1
+
+
+def test_russian_questions():
+    assert language("Что такое галлюцинация?") == "ru"
+    assert refusal_for("Где находится столовая?") == config.REFUSAL_RU
+    assert refused(config.REFUSAL_RU) and not refused("RAG uses retrieval.")
 
 
 def test_badge_citations():
