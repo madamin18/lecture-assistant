@@ -14,6 +14,7 @@ ingest.py). This file sets up the page, the sidebar and the tabs.
 """
 import hashlib
 import importlib
+import os
 import time
 from pathlib import Path
 
@@ -36,8 +37,22 @@ MODULES = (config, answer_cache, ingest, rag_module, ui.resources, ui.common,
 DATA_FILES = ("index/chunks.json", "index/answer_cache.json")
 
 
+def sync_secrets():
+    """Streamlit Cloud turns the app's Secrets into environment variables only when the server
+    starts, so a key added later (e.g. GROQ_API_KEY) would need a reboot. st.secrets always has
+    the current ones: copy them over on every run."""
+    try:
+        secrets = {k: v for k, v in st.secrets.items() if isinstance(v, str)}
+    except Exception:  # noqa: BLE001  (no secrets file: running locally with .env)
+        return
+    for name, value in secrets.items():
+        if os.environ.get(name) != value:
+            os.environ[name] = value
+
+
 def code_version() -> str:
-    """Fingerprint of the code, settings, demo index and saved answers."""
+    """Fingerprint of the code, settings (including which API keys are set), demo index and
+    saved answers."""
     h = hashlib.sha1()
     here = Path(__file__).parent
     for path in [Path(m.__file__) for m in MODULES] + [here / f for f in DATA_FILES]:
@@ -45,6 +60,9 @@ def code_version() -> str:
             h.update(path.read_bytes())
         except OSError:  # no demo index: the site runs upload-only
             pass
+    for name in sorted(os.environ):  # a new or changed key rebuilds the AI clients
+        if name.endswith(("_API_KEY", "_MODELS")) or name.startswith("LLM_"):
+            h.update(f"{name}={os.environ[name]}".encode())
     return h.hexdigest()[:12]
 
 
@@ -63,6 +81,7 @@ def load_code() -> str:
     return rag_module.LOAD_ID
 
 
+sync_secrets()
 VERSION = load_code()
 c, resources = ui.common, ui.resources
 
