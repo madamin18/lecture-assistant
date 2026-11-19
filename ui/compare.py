@@ -34,9 +34,11 @@ def ask_one(rag, messages: list, ref: str) -> dict:
 
 
 def default_models(models: list) -> list:
-    """Two models from different providers if possible, e.g. Gemini vs Groq."""
+    """The main model and the first Auto model of another provider (e.g. Gemini vs Groq's
+    gpt-oss-120b): tested models, not whatever comes first alphabetically."""
     first = models[0]
-    other = next((m for m in models[1:]
+    candidates = [m for m in rag_module.auto_chain() if m in models] + models
+    other = next((m for m in candidates
                   if rag_module.split_ref(m)[0] != rag_module.split_ref(first)[0]), models[1])
     return [first, other]
 

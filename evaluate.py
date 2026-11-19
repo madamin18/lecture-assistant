@@ -66,7 +66,8 @@ def retrieval_only(args):
         ranks[language(t["question"])].append(rank)
         print(f"{t['id']}: {'rank ' + str(rank) if rank else 'MISSED'}")
     allr = ranks["en"] + ranks["ko"]
-    out = {"hybrid_search": config.HYBRID_SEARCH, "translate_queries": config.TRANSLATE_QUERIES,
+    out = {"hybrid_search": config.HYBRID_SEARCH, "title_boost": config.TITLE_BOOST,
+           "translate_queries": config.TRANSLATE_QUERIES,
            "k": args.k, f"retrieval_hit@{args.k}_%": pct([r is not None for r in allr]),
            "retrieval_mrr": mrr(allr)}
     for lang, rs in ranks.items():
@@ -123,6 +124,8 @@ def main():
                     help="only test the search, no answers")
     ap.add_argument("--no-hybrid", action="store_true",
                     help="turn off keyword search (config.HYBRID_SEARCH) for this run")
+    ap.add_argument("--title-boost", action="store_true",
+                    help="count slide titles twice in keyword search (config.TITLE_BOOST)")
     ap.add_argument("--no-translate", action="store_true",
                     help="don't translate cross-language questions (config.TRANSLATE_QUERIES)")
     args = ap.parse_args()
@@ -132,6 +135,8 @@ def main():
         config.HYBRID_SEARCH = False
     if args.no_translate:
         config.TRANSLATE_QUERIES = False
+    if args.title_boost:
+        config.TITLE_BOOST = True
     if args.retrieval_only:
         return retrieval_only(args)
 

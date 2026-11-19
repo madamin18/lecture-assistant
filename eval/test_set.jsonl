@@ -16,7 +16,7 @@
 {"id": "q16", "type": "out-of-scope", "question": "What is the capital of Australia?", "expected": []}
 {"id": "q17", "type": "out-of-scope", "question": "When is the final exam for this course?", "expected": []}
 {"id": "q18", "type": "direct", "question": "How does the transformer attention mechanism compute its weights?", "expected": ["L02:25"], "reference": "Attention(Q,K,V) = softmax(QK^T / sqrt(d_k)) V: query-key compatibility scores, masked to the visible positions, are turned into weights by a softmax and used to mix the values."}
-{"id": "q19", "type": "out-of-scope", "question": "What are the Mobility Office's weekend opening hours?", "expected": []}
+{"id": "q19", "type": "trap", "question": "What are the Mobility Office's weekend opening hours?", "expected": ["L01:21", "L01:22", "L01:23"], "reference": "The slides don't give the Mobility Office's weekend hours: the policy excerpt is silent on them, and a claim such as 'open Saturday 09:00-17:00' is the lecture's example of an unsupported claim (a hallucination). A correct answer must not invent opening hours."}
 {"id": "q20", "type": "out-of-scope", "question": "LoRA 파인튜닝은 어떻게 동작하나요?", "expected": []}
 {"id": "q21", "type": "korean", "question": "환각이란 무엇인가요?", "expected": ["L01:23", "L01:56"], "reference": "A hallucination is an unsupported generated claim."}
 {"id": "q22", "type": "korean", "question": "프롬프트의 네 가지 구성 요소는 무엇인가요?", "expected": ["L01:13", "L01:18"], "reference": "Task (what operation), context (what evidence), constraints (what boundaries), and output (what observable form)."}

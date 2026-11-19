@@ -228,7 +228,8 @@ def list_models(provider: str, client) -> list:
         ids = []
     show = re.compile(p.get("show", ".*"))
     ids = [i for i in ids if show.search(i)] or p.get("auto", [])
-    return [canonical(f"{provider}:{i}") for i in ids]
+    preferred = [i for i in p.get("auto", []) if i in ids]  # the tested ones first
+    return [canonical(f"{provider}:{i}") for i in preferred + [i for i in ids if i not in preferred]]
 
 
 def describe_error(e: Exception) -> str:
@@ -305,7 +306,9 @@ class SlideRAG:
             chunks = json.loads((d / "chunks.json").read_text(encoding="utf-8"))
             emb = np.load(d / "embeddings.npy")
         self.chunks, self.emb = chunks, emb
-        self.bm25 = BM25([tokenize(f"{c['title']} {c['text']}") for c in chunks])
+        # The slide's own title is already in its text; adding it again counts its words twice.
+        self.bm25 = BM25([tokenize(f"{c['title']} {c.get('heading', '') * config.TITLE_BOOST} "
+                                   f"{c['text']}") for c in chunks])
         self.slide_lang = language(" ".join(c["text"] for c in chunks[:50]))
         self.chunk_lectures = np.array([c["lecture"] for c in chunks])
         self.lecture_tags = set(self.chunk_lectures.tolist())

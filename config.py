@@ -77,6 +77,10 @@ TOP_K = 8          # how many slides to retrieve per question. 8 rather than 5 s
 # Combine meaning-based search with keyword search (BM25). Helps questions whose key word
 # appears on the slide but whose meaning is vague, e.g. "What must students submit?".
 HYBRID_SEARCH = True
+# Count a slide's title (read from the PDF) twice in keyword search? Tested on the 40 answerable
+# test questions (k=8): the right slide in the top 8 for 39 -> 38, MRR 0.840 -> 0.821 (better
+# top 3: 36 -> 38). Not better overall, so off. `evaluate.py --retrieval-only` measures it.
+TITLE_BOOST = False
 # Refuse without calling the LLM if the best score is below this. Measured on eval/test_set.jsonl:
 # in-scope 0.788-0.906, out-of-scope 0.752-0.837. They overlap, so 0.78 only blocks clearly
 # off-topic questions; the prompt's refusal rule handles the rest.

@@ -104,11 +104,12 @@ def test_unknown_model_is_skipped_for_an_hour():
 
 
 def test_list_models_filters_and_falls_back(groq):
-    ids = ["whisper-large-v3", "qwen/qwen3.8-27b", "openai/gpt-oss-120b",
+    ids = ["allam-2-7b", "whisper-large-v3", "qwen/qwen3.8-27b", "openai/gpt-oss-120b",
            "meta-llama/llama-prompt-guard-2-22m"]
     client = SimpleNamespace(models=SimpleNamespace(
         list=lambda: [SimpleNamespace(id=i) for i in ids]))
-    assert list_models("groq", client) == [OSS, QWEN]
+    # the Auto (tested) models first, then the rest; speech and guard models hidden
+    assert list_models("groq", client) == [OSS, QWEN, "groq:allam-2-7b"]
 
     def broken():
         raise RuntimeError("no network")
