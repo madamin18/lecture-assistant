@@ -28,13 +28,14 @@ import ui.ask
 import ui.browse
 import ui.common
 import ui.compare
+import ui.games
 import ui.i18n
 import ui.practice
 import ui.resources
 
 # Reloaded in this order (each module after the ones it imports).
 MODULES = (config, answer_cache, ingest, rag_module, ui.i18n, ui.resources, ui.common,
-           ui.ask, ui.practice, ui.browse, ui.compare)
+           ui.ask, ui.practice, ui.browse, ui.compare, ui.games)
 DATA_FILES = ("index/chunks.json", "index/answer_cache.json")
 
 
@@ -203,6 +204,9 @@ with st.sidebar:
                            icon=":material/download:", width="stretch", on_click="ignore",
                            disabled=not st.session_state.messages, help=t("sb_save_help"))
     st.caption(t("sb_disclaimer"))
+    if st.button(t("games_btn"), icon=":material/sports_esports:", type="primary",
+                 width="stretch"):
+        ui.games.open_games()
 
 
 # ---------- header ----------

@@ -46,6 +46,21 @@ Four tabs:
   answer; votes from everyone add up in a leaderboard, next to the test-set results from
   `compare_models.py`.
 
+**Mini games** ("Bored? Play a game" at the bottom of the sidebar) for a short break, both
+original and built from the course's vocabulary:
+- **Citation Runner**: an endless runner. A robot jumps over HTTP error blocks (404, 429, 503),
+  stays on the ground under the "hallucination" ghosts, and collects citation badges for +25.
+- **Term Match**: a memory game. Flip cards to match 8 course terms (hallucination, recall@k,
+  chunk overlap, agent loop, ...) with their meaning, in the interface language.
+
+Each is a small Streamlit custom component (`st.components.v2`, HTML + canvas/JavaScript, no
+iframe and nothing loaded from outside), coloured with the theme's CSS variables so it fits light
+and dark mode, playable with the keyboard or by tapping on a phone. When a round ends it reports
+the score, and the site shows your best and the best on the server. Why not embed existing games:
+itch.io, the main source of free web games, offers embedding for your own games, its moderators
+ask people not to embed other people's, and public source code is not permission to republish a
+game; original games also avoid ads and trackers on a class site.
+
 The sidebar's **AI model** picker chooses who writes answers and practice questions: "Auto"
 (recommended) or any model your API keys can use (the list is fetched from each provider).
 
@@ -216,7 +231,7 @@ PyTorch. GitHub Actions runs them on every push (`.github/workflows/tests.yml`).
 | `config.py` | settings and the provider list |
 | `answer_cache.py`, `warm_cache.py` | saved answers for instant demo questions |
 | `app.py` | the website: page setup, sidebar, tabs |
-| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English, Russian and Korean (`i18n.py`) |
+| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), the mini games (`games.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English, Russian and Korean (`i18n.py`) |
 | `evaluate.py`, `eval_quiz.py`, `compare_models.py` | measurements on `eval/test_set.jsonl` |
 | `tests/` | unit tests (no API key needed) |
 
