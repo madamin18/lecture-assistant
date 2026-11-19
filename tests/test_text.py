@@ -52,6 +52,16 @@ def test_retry_delay_reads_gemini_429_body():
     assert retry_delay(status_error(429, "no delay")) is None
 
 
+def test_retry_delay_reads_groq_messages_and_headers():
+    groq = "Rate limit reached ... tokens per day (TPD): Limit 200000. Please try again in {}."
+    assert retry_delay(status_error(429, groq.format("3m36.5s"))) == 216.5
+    assert retry_delay(status_error(429, groq.format("1h2m"))) == 3720
+    assert retry_delay(status_error(429, groq.format("7.66s"))) == 7.66
+    assert retry_delay(status_error(429, groq.format("860ms"))) == 0.86
+    assert retry_delay(status_error(429, "slow down", headers={"retry-after": "30"})) == 30
+    assert retry_delay(status_error(429, "Please try again in a minute.")) is None
+
+
 def test_cited_hits_does_not_match_prefix():
     hits = [{"cite": "L01 p.1"}, {"cite": "L01 p.13"}, {"cite": "L02 slide 4"}]
     assert cited_hits("See [L01 p.13] and [L02 slide 4].", hits) == hits[1:]

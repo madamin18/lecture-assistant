@@ -51,14 +51,15 @@ def mrr(ranks):
 pct = lambda xs: round(100 * sum(xs) / len(xs), 1) if xs else None
 
 
-def load_tests(path):
-    return [json.loads(l) for l in Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
+def load_tests(path, lang=None):
+    tests = [json.loads(l) for l in Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
+    return [t for t in tests if lang is None or language(t["question"]) == lang]
 
 
 def retrieval_only(args):
     rag = SlideRAG()
-    ranks = {"en": [], "ko": []}
-    for t in load_tests(args.test):
+    ranks = {"en": [], "ko": [], "ru": []}
+    for t in load_tests(args.test, args.lang):
         expected = parse_expected(t.get("expected", []))
         if not expected:
             continue
@@ -66,7 +67,7 @@ def retrieval_only(args):
         rank = first_rank(hits, expected)
         ranks[language(t["question"])].append(rank)
         print(f"{t['id']}: {'rank ' + str(rank) if rank else 'MISSED'}")
-    allr = ranks["en"] + ranks["ko"]
+    allr = ranks["en"] + ranks["ko"] + ranks["ru"]
     out = {"hybrid_search": config.HYBRID_SEARCH, "title_boost": config.TITLE_BOOST,
            "translate_queries": config.TRANSLATE_QUERIES,
            "k": args.k, f"retrieval_hit@{args.k}_%": pct([r is not None for r in allr]),
@@ -121,6 +122,8 @@ def main():
                     help="override config.MIN_SCORE for this run (refusal threshold)")
     ap.add_argument("--delay", type=float, default=0,
                     help="seconds to wait between questions (free-tier rate limits)")
+    ap.add_argument("--lang", choices=["en", "ko", "ru"],
+                    help="only the questions in this language")
     ap.add_argument("--retrieval-only", action="store_true",
                     help="only test the search, no answers")
     ap.add_argument("--no-hybrid", action="store_true",
@@ -141,7 +144,7 @@ def main():
     if args.retrieval_only:
         return retrieval_only(args)
 
-    tests = load_tests(args.test)
+    tests = load_tests(args.test, args.lang)
     rag = SlideRAG()
     rows = []
 
@@ -177,12 +180,13 @@ def main():
 
     summary = {
         "name": args.name, "k": args.k, "min_score": config.MIN_SCORE,
-        "model": config.LLM_MODEL, "hybrid_search": config.HYBRID_SEARCH,
+        "models": sorted({r["model"] for r in rows if r.get("model")}),
+        "hybrid_search": config.HYBRID_SEARCH,
         "translate_queries": config.TRANSLATE_QUERIES,
         "n_busy_skipped": sum(r["busy"] for r in rows),
         **scores(rows, args.k, args.judge),
         "by_language": {lang: scores([r for r in rows if r["lang"] == lang], args.k, args.judge)
-                        for lang in ("en", "ko") if any(r["lang"] == lang for r in rows)},
+                        for lang in ("en", "ko", "ru") if any(r["lang"] == lang for r in rows)},
     }
 
     Path("eval").mkdir(exist_ok=True)

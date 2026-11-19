@@ -93,6 +93,15 @@ def test_answer_reports_model_and_refuses_in_korean(monkeypatch):
     assert text == config.REFUSAL_KO and info["model"] is None
 
 
+def test_related_slides_for_follow_ups():
+    rag = make_rag(CHUNKS + [
+        chunk("L04", 1, "A hallucination can be caught by checking every claim against evidence.")])
+    related = rag.related([CHUNKS[0]], n=2)  # CHUNKS[0]: "A hallucination is fluent output..."
+    assert related[0]["cite"] == "L04 slide 1"
+    assert CHUNKS[0]["cite"] not in {h["cite"] for h in related if h["lecture"] == "L01"}
+    assert rag.related([{"pdf": "nope.pdf", "cite": "X"}]) == []
+
+
 def test_quiz_slides_cover_the_chosen_lecture(monkeypatch):
     monkeypatch.setattr(config, "MIN_CHARS", 10)  # the test slides are short
     slides = make_rag().quiz_slides(lectures=["L01"], n=2)

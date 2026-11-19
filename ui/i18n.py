@@ -4,12 +4,11 @@ for words whose form depends on a number (Russian: 1 слайд, 2 слайда,
 
 To add a language: add it to LANGUAGES and give it a dictionary in TEXT; a missing key falls
 back to English."""
-import streamlit as st
-
 LANGUAGES = {"en": "ENG", "ru": "RUS"}
 
 
 def lang() -> str:
+    import streamlit as st  # here, so the texts can be tested without Streamlit installed
     return st.session_state.get("ui_lang") or "en"
 
 
@@ -96,9 +95,10 @@ EN = {
     "sb_model": "AI model",
     "auto": "Auto",
     "auto_recommended": "Auto (recommended)",
-    "sb_model_help": "Auto starts with the most reliable model and moves on to the next one, or "
-                     "another provider, when a model is busy or out of free quota. Pick a model "
-                     "to try it; the Compare models tab puts several side by side.",
+    "sb_model_help": "Auto starts with the model that did best in our tests (fast and "
+                     "accurate) and moves on to the next one, or another provider, when a model "
+                     "is busy or out of free quota. Pick a model to try it; the Compare models "
+                     "tab puts several side by side.",
     "sb_clear": "Clear chat",
     "sb_save": "Save chat",
     "sb_save_help": "Download this chat as study notes (Markdown), with the slides each answer "
@@ -329,10 +329,11 @@ RU = {
     "sb_model": "Модель ИИ",
     "auto": "Авто",
     "auto_recommended": "Авто (рекомендуется)",
-    "sb_model_help": "«Авто» начинает с самой надёжной модели и переходит к следующей (или к "
-                     "другому провайдеру), если модель занята или закончилась бесплатная квота. "
-                     "Выберите модель, чтобы попробовать её; вкладка «Сравнить модели» "
-                     "показывает несколько моделей рядом.",
+    "sb_model_help": "«Авто» начинает с модели, которая лучше всего показала себя в наших тестах "
+                     "(быстрой и точной), и переходит к следующей (или к другому провайдеру), "
+                     "если модель занята или закончилась бесплатная квота. Выберите модель, "
+                     "чтобы попробовать её; вкладка «Сравнить модели» показывает несколько "
+                     "моделей рядом.",
     "sb_clear": "Очистить чат",
     "sb_save": "Сохранить чат",
     "sb_save_help": "Скачать чат как конспект (Markdown) со слайдами, на которых основан каждый "

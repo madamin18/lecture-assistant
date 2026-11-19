@@ -1,0 +1,34 @@
+{
+  "name": "russian",
+  "k": 8,
+  "min_score": 0.78,
+  "models": [
+    "gemini-3.5-flash-lite",
+    "groq:openai/gpt-oss-120b"
+  ],
+  "hybrid_search": true,
+  "translate_queries": true,
+  "n_busy_skipped": 0,
+  "n_in_scope": 5,
+  "n_out_of_scope": 2,
+  "retrieval_hit@8_%": 100.0,
+  "retrieval_mrr": 0.75,
+  "citation_accuracy_%": 100.0,
+  "false_refusal_%": 0.0,
+  "correct_refusal_%": 100.0,
+  "answer_correct_%": 100.0,
+  "answer_partial_%": 0.0,
+  "by_language": {
+    "ru": {
+      "n_in_scope": 5,
+      "n_out_of_scope": 2,
+      "retrieval_hit@8_%": 100.0,
+      "retrieval_mrr": 0.75,
+      "citation_accuracy_%": 100.0,
+      "false_refusal_%": 0.0,
+      "correct_refusal_%": 100.0,
+      "answer_correct_%": 100.0,
+      "answer_partial_%": 0.0
+    }
+  }
+}

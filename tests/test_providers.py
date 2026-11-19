@@ -48,6 +48,22 @@ def test_auto_chain_without_other_keys():
     assert auto_chain() == ["m1", "m2"]
 
 
+def test_preferred_model_goes_first_only_with_its_key(monkeypatch):
+    monkeypatch.setattr(config, "PREFERRED_MODELS", [OSS])
+    assert auto_chain() == ["m1", "m2"]  # no Groq key: skipped
+    monkeypatch.setitem(config.PROVIDERS["groq"], "key", "test-key")
+    monkeypatch.setitem(config.PROVIDERS["groq"], "auto", ["openai/gpt-oss-120b"])
+    assert auto_chain() == [OSS, "m1", "m2"]
+
+
+def test_groq_daily_token_cap_skips_the_model_until_reset(groq):
+    capped = status_error(429, "Limit 200000 ... Please try again in 25m10s.")
+    rag_, gemini, grq = two_providers(groq_script={"openai/gpt-oss-120b": [capped]})
+    info = {}
+    assert rag_.chat(MESSAGES, info, model=OSS) == "from gemini"
+    assert 1500 < rag._cooldown_until[OSS] - time.time() <= 1510
+
+
 def test_main_provider_out_of_quota_falls_back_to_groq(groq):
     daily = status_error(429, '{"retryDelay": "40000s"}')
     rag_, gemini, grq = two_providers({"m1": [daily], "m2": [daily]})

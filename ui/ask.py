@@ -15,13 +15,16 @@ from ui.i18n import t
 
 # Slides that make poor follow-up questions.
 SKIP_TITLES = re.compile(r"^(learning outcomes|references?|sources|exit questions|agenda|"
-                         r"outline|roadmap|questions|small quizzes)", re.IGNORECASE)
+                         r"outline|roadmap|questions|small quizzes|key takeaways|"
+                         r"\w+ takeaways|today|by the end)", re.IGNORECASE)
 
 
 def next_questions(answer: str, hits: list) -> dict:
-    """Up to 3 follow-ups built from the other slides the search found (no extra AI call)."""
-    cited = rag_module.cited_hits(answer, hits)
-    pool = [h for h in hits if h not in cited] or hits
+    """Up to 3 follow-ups: the slides closest in meaning to the ones the answer cites (no
+    extra AI call). The search's other results were often off-topic (references, other
+    lectures), since they only had to be among the 8 best for this one question."""
+    cited = rag_module.cited_hits(answer, hits) or hits[:1]
+    pool = c.rag().related(cited, n=20) or [h for h in hits if h not in cited]
     out = {}
     for h in pool:
         title = c.heading(h).rstrip("…")

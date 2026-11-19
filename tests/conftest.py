@@ -45,10 +45,10 @@ def stream_of(*pieces):
                  for p in pieces])
 
 
-def status_error(code, text=""):
+def status_error(code, text="", headers=None):
     request = httpx.Request("POST", "https://example.invalid/v1/chat/completions")
-    return openai.APIStatusError(f"error {code}", body=None,
-                                 response=httpx.Response(code, request=request, text=text))
+    return openai.APIStatusError(f"error {code}", body=None, response=httpx.Response(
+        code, request=request, text=text, headers=headers))
 
 
 def timeout_error():
@@ -107,6 +107,7 @@ def isolated(monkeypatch):
     monkeypatch.setattr(config, "LLM_MODEL", "m1")
     monkeypatch.setattr(config, "FALLBACK_MODELS", ["m1", "m2"])
     monkeypatch.setattr(config, "MAIN_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "PREFERRED_MODELS", [])
     for provider in config.PROVIDERS.values():
         monkeypatch.setitem(provider, "key", None)
     monkeypatch.setattr(rag.time, "sleep", lambda s: None)

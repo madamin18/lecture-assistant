@@ -45,3 +45,10 @@
 {"id": "q45", "type": "korean", "question": "recall@k는 어떻게 계산하나요?", "expected": ["L06:14"], "reference": "Relevant items in the top k divided by all known relevant items."}
 {"id": "q46", "type": "korean", "question": "워크플로와 에이전트의 차이는 무엇인가요?", "expected": ["L08:3"], "reference": "Who chooses the next step at runtime: code in a fixed workflow, the model in an agent loop."}
 {"id": "q47", "type": "out-of-scope", "question": "How does LoRA reduce the number of trainable parameters during fine-tuning?", "expected": []}
+{"id": "q48", "type": "russian", "question": "Что такое галлюцинация в генеративном ИИ?", "expected": ["L01:23", "L01:56"], "reference": "A hallucination is an unsupported generated claim."}
+{"id": "q49", "type": "russian", "question": "Чем zero-shot промптинг отличается от few-shot?", "expected": ["L01:15", "L01:16", "L01:56"], "reference": "Zero-shot prompting gives one explicit instruction with no demonstrations; few-shot prompting adds examples that demonstrate the target behavior, including both answering and abstaining."}
+{"id": "q50", "type": "russian", "question": "Что студенты должны сдать по лабораторной работе лекции 1?", "expected": ["L01:51"], "reference": "trials.jsonl raw records, the best prompt with its ID and one controlled change, 2 failure or abstention annotations, and a 150-word memo."}
+{"id": "q51", "type": "russian", "question": "Как вычисляется recall@k?", "expected": ["L06:14"], "reference": "Relevant items in the top k divided by all known relevant items."}
+{"id": "q52", "type": "russian", "question": "Чем фиксированный workflow отличается от агента?", "expected": ["L08:3"], "reference": "Who chooses the next step at runtime: in a fixed workflow the code determines the path; in an agent loop the model chooses the next action using new evidence."}
+{"id": "q53", "type": "out-of-scope", "question": "Какая столица Австралии?", "expected": []}
+{"id": "q54", "type": "out-of-scope", "question": "Когда итоговый экзамен по этому курсу?", "expected": []}

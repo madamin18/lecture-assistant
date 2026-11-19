@@ -25,7 +25,8 @@ Four tabs:
 - **Ask** (English or 한국어): chat with the lecture slides. Citations appear as badges in the
   answer. Each answer shows how it was found (translation, hybrid search, which model answered,
   timings), the cited slides as images, a relevance table of the other slides searched, thumbs
-  up/down, and "Ask next" follow-ups named after the titles of the other slides found. The
+  up/down, and "Ask next" follow-ups: the slides closest in meaning to the ones the answer
+  cites (from the embeddings, no extra AI call), named by their titles. The
   sidebar can limit the search to chosen lectures, and "Save chat" downloads the chat as
   Markdown study notes with the slides each answer cites.
 - **Practice exam**: exam-style questions (multiple choice and/or short answer) from the slides,
@@ -123,10 +124,14 @@ instant too. Follow-up questions are always answered fresh.
    and options are shuffled so the right answer isn't always B or C.
 
 ## Models and reliability
-- **Auto** tries, in order: `gemini-3.5-flash-lite` (answers in 1-3 s), `gemini-3-flash-preview`,
-  `gemini-3.1-flash-lite`, `gemini-3.5-flash`, then each other provider with a key: Groq's
-  `openai/gpt-oss-120b` and `qwen/qwen3.8-27b`, then OpenRouter's `google/gemma-4-31b-it:free`
-  (`auto` in `config.PROVIDERS`, or `GROQ_MODELS=...` in `.env`). In testing (Nov 2026)
+- **Auto** tries, in order: Groq's `openai/gpt-oss-120b` when a Groq key is set
+  (`PREFERRED_MODELS`: it scored as well as Gemini on the test set and answers in about 1 s),
+  `gemini-3.5-flash-lite` (1-3 s), `gemini-3-flash-preview`, `gemini-3.1-flash-lite`,
+  `gemini-3.5-flash`, then the other providers' models: Groq's `qwen/qwen3.8-27b`, then
+  OpenRouter's `google/gemma-4-31b-it:free` (`auto` in `config.PROVIDERS`, or
+  `GROQ_MODELS=...` in `.env`). gpt-oss-120b's free tier allows about 200,000 tokens (~80
+  answers) a day; when Groq says "Please try again in 25m10s", Auto skips it for that long and
+  Gemini answers. In testing (Nov 2026)
   `gemini-3.5-flash` was often overloaded (timeouts, 503) and `gemini-flash-latest` /
   `3.7-flash` / `3.8-flash` timed out.
 - Models are written `provider:model` (`groq:qwen/qwen3.8-27b`); a bare name is a Gemini model.
@@ -192,12 +197,15 @@ correctness"), which all three models cited.
 pip install pytest
 python -m pytest -q
 ```
-60 tests in `tests/` cover keyword search, lecture mentions, language detection, slide titles and
-footer numbers (on PDFs generated in the test), merging, the lecture filter, translation of Korean
-questions, refusals, model fallback and cooldowns across providers, choosing a model, hiding
-`<think>` reasoning, streaming, practice-question checks and the saved-answer cache. They use a fake embedder and a fake AI client, so they run in under a second
-with no API key, no internet and no PyTorch. GitHub Actions runs them on every push
-(`.github/workflows/tests.yml`).
+252 tests in `tests/` cover keyword search, lecture mentions (English, Korean, Russian),
+language detection, slide titles and footer numbers (on PDFs generated in the test), merging,
+the lecture filter, translation of cross-language questions, refusals, model fallback and
+cooldowns across providers (including Groq's "try again in ..." limits), choosing a model,
+hiding `<think>` reasoning, streaming, citation formats, related-slide suggestions,
+practice-question checks and the saved-answer cache; 185 of them check that every interface
+text has a Russian version using the same values. They use a fake embedder and a fake AI
+client, so they run in under a second with no API key, no internet, no Streamlit and no
+PyTorch. GitHub Actions runs them on every push (`.github/workflows/tests.yml`).
 
 ## Code layout
 | File | What it does |
@@ -223,9 +231,9 @@ with no API key, no internet and no PyTorch. GitHub Actions runs them on every p
   name is used as is, e.g. `Week 3.pdf` -> `[Week_3 slide 14]`.
 
 ## Evaluate
-`eval/test_set.jsonl` has 47 questions covering all 9 lectures: 41 answerable (direct,
-paraphrased, multi-slide, one "trap"; 30 in English, 11 in Korean) and 6 out of scope (3 English,
-3 Korean).
+`eval/test_set.jsonl` has 54 questions covering all 9 lectures: 46 answerable (direct,
+paraphrased, multi-slide, one "trap"; 30 in English, 11 in Korean, 5 in Russian) and 8 out of
+scope (3 English, 3 Korean, 2 Russian). `--lang ru` runs only the questions in one language.
 Each answerable question lists every PDF page that answers it ("relevance judgments", as in
 Lesson 6). When the other lectures were added, three judgments were widened after reading the
 slides that outranked the expected ones (e.g. L04 slide 13: "A similarity score helps rank
@@ -278,6 +286,14 @@ model had enough context for every question it was asked.
 
 Korean questions only (8 answerable, `--retrieval-only`): the right slide was in the top 5 for
 50% of them without translation and 100% with it.
+
+Russian questions (added Nov 19 with the Russian interface; `python evaluate.py --lang ru
+--judge`): 5 of 5 answered correctly in Russian, citation accuracy 100%, the right slide in the
+top 8 every time, and both off-topic questions refused. Testing the Russian interface found one
+bug first: "Что студенты должны сдать по лекции 1?" was refused although the right slide was
+found, because the model had to connect "сдать" to the slide's "Submit evidence" by itself; a
+question in another language than the slides now also shows the model the English translation
+used for the search, and it is answered.
 
 The missed refusal in these tables is q19 (Mobility Office weekend hours), the question that
 turned out to be mislabeled (see above): the model correctly replied that the slides don't give

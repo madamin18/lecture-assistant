@@ -63,6 +63,13 @@ def available_providers() -> list:
     return [MAIN_PROVIDER] + [n for n, p in PROVIDERS.items() if p["key"] and n != MAIN_PROVIDER]
 
 
+# Tried first by Auto when their provider has a key. gpt-oss-120b on Groq scored as well as
+# Gemini on the test set (100% vs 97.6% correct) and answers in 1.0 s instead of 2.7 s, but its
+# free tier allows only ~200,000 tokens (~80 answers) a day; after that Auto skips it until
+# Groq's "try again in ..." time and Gemini answers.
+PREFERRED_MODELS = [m.strip() for m in os.getenv(
+    "PREFERRED_MODELS", "groq:openai/gpt-oss-120b").split(",") if m.strip()]
+
 LLM_TIMEOUT = 20          # seconds to wait for a model before trying the next one
 COOLDOWN_SECONDS = 120    # skip a model that just failed for this long (shared by all visitors)
 

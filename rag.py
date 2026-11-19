@@ -178,10 +178,24 @@ def rrf_ranks(scores: np.ndarray, only_positive: bool = False) -> np.ndarray:
 
 
 def retry_delay(e: Exception) -> float | None:
-    """Seconds the API asks us to wait (Gemini puts "retryDelay": "76943s" in its 429 body)."""
+    """Seconds the API asks us to wait: Gemini's "retryDelay": "76943s" in the 429 body, Groq's
+    "Please try again in 3m36.5s" (or "in 860ms"), or a Retry-After header."""
     response = getattr(e, "response", None)
-    m = re.search(r'"retryDelay":\s*"(\d+(?:\.\d+)?)s"', getattr(response, "text", "") or "")
-    return float(m.group(1)) if m else None
+    text = getattr(response, "text", "") or ""
+    m = re.search(r'"retryDelay":\s*"(\d+(?:\.\d+)?)s"', text)
+    if m:
+        return float(m.group(1))
+    m = re.search(r"try again in (\d+(?:\.\d+)?)ms", text)
+    if m:
+        return float(m.group(1)) / 1000
+    m = re.search(r"try again in (?:(\d+)h)?(?:(\d+)m(?!s))?(?:(\d+(?:\.\d+)?)s)?", text)
+    if m and any(m.groups()):
+        hours, minutes, seconds = (float(g) if g else 0.0 for g in m.groups())
+        return hours * 3600 + minutes * 60 + seconds
+    try:
+        return float((getattr(response, "headers", None) or {}).get("retry-after"))
+    except (TypeError, ValueError):
+        return None
 
 
 def make_clients() -> dict:
@@ -215,9 +229,11 @@ def model_label(ref: str) -> str:
 
 
 def auto_chain() -> list:
-    """The models "Auto" tries, in order: the main provider's (LLM_MODEL, FALLBACK_MODELS), then
-    each other provider that has a key. More providers = more free daily quota."""
-    refs = [config.LLM_MODEL] + config.FALLBACK_MODELS
+    """The models "Auto" tries, in order: PREFERRED_MODELS whose provider has a key, the main
+    provider's (LLM_MODEL, FALLBACK_MODELS), then each other provider that has a key. More
+    providers = more free daily quota."""
+    refs = [r for r in config.PREFERRED_MODELS if split_ref(r)[0] in config.available_providers()]
+    refs += [config.LLM_MODEL] + config.FALLBACK_MODELS
     for name in config.available_providers()[1:]:
         refs += [f"{name}:{m}" for m in config.PROVIDERS[name].get("auto", [])]
     return list(dict.fromkeys(canonical(r) for r in refs))
@@ -319,6 +335,7 @@ class SlideRAG:
                                    f"{c['text']}") for c in chunks])
         self.slide_lang = language(" ".join(c["text"] for c in chunks[:50]))
         self.chunk_lectures = np.array([c["lecture"] for c in chunks])
+        self._row = {(c["pdf"], c["cite"]): i for i, c in enumerate(chunks)}
         self.lecture_tags = set(self.chunk_lectures.tolist())
         self.pdf_data = pdf_data or {}  # uploaded file name -> PDF bytes
         if embedder is None:
@@ -373,6 +390,23 @@ class SlideRAG:
         # isfinite: when the allowed lectures have fewer than k slides, don't pad with others
         top = [i for i in np.argsort(-fused)[:k] if np.isfinite(fused[i])]
         return [{**self.chunks[i], "score": float(dense[i])} for i in top]
+
+    def related(self, chunks: list, n: int = 10) -> list:
+        """The slides closest in meaning to `chunks` (e.g. the ones an answer cites), most
+        similar first, without those chunks. Used for follow-up suggestions; no AI call."""
+        rows = [self._row[key] for key in ((c["pdf"], c["cite"]) for c in chunks)
+                if key in self._row]
+        if not rows:
+            return []
+        centre = self.emb[rows].mean(axis=0)
+        sims = self.emb @ (centre / (np.linalg.norm(centre) or 1.0))
+        out = []
+        for i in np.argsort(-sims):
+            if i not in rows:
+                out.append({**self.chunks[i], "score": float(sims[i])})
+                if len(out) == n:
+                    break
+        return out
 
     def search(self, question: str, k: int = config.TOP_K, previous: str | None = None,
                only=None, info: dict | None = None):
