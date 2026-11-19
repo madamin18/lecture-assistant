@@ -123,10 +123,11 @@ def refusal_for(question: str) -> str:
     return config.REFUSALS[language(question)]
 
 
-# "Lesson 1", "lecture 03", "L05", "1강", "3차시". A bare "L" needs two digits, so terms like
-# "L2 norm" aren't read as lecture 2.
+# "Lesson 1", "lecture 03", "L05", "1강", "3차시", "лекция 3", "урок 3". A bare "L" needs two
+# digits, so terms like "L2 norm" aren't read as lecture 2.
 LECTURE_MENTION = re.compile(
-    r"\b(?:lesson|lecture|lec)\s*0?(\d{1,2})\b|\bL(\d{2})\b|(\d{1,2})\s*(?:강|차시)", re.IGNORECASE)
+    r"\b(?:lesson|lecture|lec|лекци[яиюейь]\w*|урок\w*|заняти[еяю]\w*)\s*0?(\d{1,2})\b"
+    r"|\bL(\d{2})\b|(\d{1,2})\s*(?:강|차시)", re.IGNORECASE)
 
 
 def mentioned_lectures(text: str, available) -> set:
@@ -396,6 +397,7 @@ class SlideRAG:
         history = earlier chat as [{"role": "user"|"assistant", "content": ...}]."""
         history = [m for m in (history or []) if m.get("content")][-4:]  # last 2 exchanges
         previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
+        info = {} if info is None else info
         hits, min_score = self.search(question, k, previous, only, info)
         if not hits or max(h["score"] for h in hits) < min_score:
             return None, hits
@@ -404,9 +406,14 @@ class SlideRAG:
         messages = [{"role": "system",
                      "content": SYSTEM_PROMPT.format(refusal=refusal_for(question))}]
         messages += [{"role": m["role"], "content": m["content"][:800]} for m in history]
+        # A question in another language than the slides also gets the translation used for the
+        # search: "Что студенты должны сдать?" was refused until the model saw "submit".
+        translated = (f"\n(In {LANGUAGE_NAMES[self.slide_lang]}: {info['translation']})"
+                      if info.get("translation") else "")
         # Name the answer language: after a Korean chat, an English question was answered in Korean.
         messages.append({"role": "user",
-                         "content": f"Slide excerpts:\n{context}\n\nQuestion: {question}\n\n"
+                         "content": f"Slide excerpts:\n{context}\n\nQuestion: {question}"
+                                    f"{translated}\n\n"
                                     f"(Answer in {LANGUAGE_NAMES[language(question)]}.)"})
         return messages, hits
 

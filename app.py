@@ -28,11 +28,12 @@ import ui.ask
 import ui.browse
 import ui.common
 import ui.compare
+import ui.i18n
 import ui.practice
 import ui.resources
 
 # Reloaded in this order (each module after the ones it imports).
-MODULES = (config, answer_cache, ingest, rag_module, ui.resources, ui.common,
+MODULES = (config, answer_cache, ingest, rag_module, ui.i18n, ui.resources, ui.common,
            ui.ask, ui.practice, ui.browse, ui.compare)
 DATA_FILES = ("index/chunks.json", "index/answer_cache.json")
 
@@ -83,14 +84,19 @@ def load_code() -> str:
 
 sync_secrets()
 VERSION = load_code()
-c, resources = ui.common, ui.resources
+c, resources, t = ui.common, ui.resources, ui.i18n.t
 
-st.set_page_config(page_title="Lecture Notes Assistant", page_icon=":material/school:")
+st.session_state.setdefault("ui_lang", "en")
+st.set_page_config(page_title=t("app_title"), page_icon=":material/school:")
+
+# Interface language, at the very top of the sidebar.
+with st.sidebar:
+    st.segmented_control(t("ui_language"), list(ui.i18n.LANGUAGES), key="ui_lang",
+                         format_func=ui.i18n.LANGUAGES.get, required=True,
+                         label_visibility="collapsed", width="stretch")
 
 if not any(p["key"] for p in config.PROVIDERS.values()):
-    st.error("No API key found. Add GEMINI_API_KEY (or GROQ_API_KEY, OPENROUTER_API_KEY) to "
-             "`.env` (local) or to the app's Secrets on Streamlit Cloud (Manage app -> Settings "
-             "-> Secrets).")
+    st.error(t("no_key"))
     st.stop()
 
 
@@ -111,16 +117,16 @@ def index_uploads(files):
         try:
             pages += ingest.page_count(name, pdf)
         except Exception:
-            return None, [("error", f"**{name}** couldn't be opened as a PDF.")]
+            return None, [("error", "upload_bad_pdf", {"name": name})]
     if pages > config.MAX_UPLOAD_PAGES:
-        return None, [("error", f"These files have {pages} pages in total. The limit is "
-                                f"{config.MAX_UPLOAD_PAGES}; please upload fewer lectures.")]
+        return None, [("error", "upload_too_many",
+                       {"pages": pages, "limit": config.MAX_UPLOAD_PAGES})]
 
-    with st.spinner(f"Reading {pages} slides… (first time takes about a minute)"):
+    with st.spinner(t("upload_reading", pages=pages)):
         chunks, emb, skipped = ingest.build_index(list(data.items()), resources.load_embedder())
 
-    notes = [("warning", f"**{name}** has no readable text (probably scanned images), so it "
-                         "can't be searched.") for name in skipped]
+    # messages are kept as (level, text key, values), so they follow the interface language
+    notes = [("warning", "upload_no_text", {"name": name}) for name in skipped]
     if not chunks:
         return None, notes
     return rag_module.SlideRAG(chunks=chunks, emb=emb, pdf_data=data,
@@ -135,11 +141,9 @@ def corpus_key(files) -> str:
 
 
 with st.sidebar:
-    st.header("Your slides", anchor=False)
-    files = st.file_uploader(
-        "Upload lecture PDFs", type="pdf", accept_multiple_files=True,
-        help="Only you can search the files you upload. They stay in memory for this "
-             "browser tab and are never saved on the server.")
+    st.header(t("sb_your_slides"), anchor=False)
+    files = st.file_uploader(t("sb_upload"), type="pdf", accept_multiple_files=True,
+                             help=t("sb_upload_help"))
 
 # Re-index only when the set of uploaded files (or the app's code) changes;
 # a new set starts a new chat and quiz.
@@ -148,7 +152,7 @@ if st.session_state.get("corpus_key") != key or st.session_state.get("version") 
     if files:
         rag, notes = index_uploads(files)
         if rag:
-            st.toast(f"Ready: {len(rag.chunks)} slides from {len(files)} file(s)",
+            st.toast(t("upload_ready", slides=len(rag.chunks), files=len(files)),
                      icon=":material/check_circle:")
     else:
         rag, notes = resources.load_demo(VERSION), []
@@ -158,6 +162,8 @@ if st.session_state.get("corpus_key") != key or st.session_state.get("version") 
 for name, default in (("messages", []), ("quiz", None), ("comparison", None),
                       ("lecture_filter", []), ("quiz_lectures", []), ("mode", c.ASK)):
     st.session_state.setdefault(name, default)
+if st.session_state.mode not in c.MODES:  # e.g. a tab name saved by an older version
+    st.session_state.mode = c.ASK
 rag = st.session_state.rag
 
 # Jumps requested from the slide viewer dialog (applied before any widget is drawn).
@@ -174,64 +180,56 @@ if goto:
 models = resources.available_models(VERSION)
 with st.sidebar:
     if rag is not None and len(rag.lectures) > 1:
-        st.pills("Search only these lectures", [t for t, _ in rag.lectures],
-                 selection_mode="multi", key="lecture_filter",
-                 help="Leave empty to search every lecture. Naming a lecture in your question "
-                      "(\"in Lesson 3\", \"3강\") also works.")
-    st.slider("Slides read per answer", 3, 12, config.TOP_K, key="k",
-              help="How many of the best-matching slides the assistant reads before answering.")
+        st.pills(t("sb_filter"), [tag for tag, _ in rag.lectures], selection_mode="multi",
+                 key="lecture_filter", help=t("sb_filter_help"))
+    st.slider(t("sb_k"), 3, 12, config.TOP_K, key="k", help=t("sb_k_help"))
     choices = [c.AUTO] + models
     if st.session_state.get("model_choice") not in choices:  # e.g. a free model was retired
         st.session_state.model_choice = c.AUTO
-    st.selectbox("AI model", choices, key="model_choice",
-                 format_func=lambda m: "Auto (recommended)" if m == c.AUTO
-                 else rag_module.model_label(m),
-                 help="Auto starts with the most reliable model and moves on to the next one, "
-                      "or another provider, when a model is busy or out of free quota. Pick a "
-                      "model to try it; the Compare models tab puts several side by side.")
+    # One picker per interface language (a picker keeps showing the old language's text for the
+    # selected item); the choice itself lives in "model_choice", shared by both.
+    picker = f"model_picker_{ui.i18n.lang()}"
+    st.session_state[picker] = st.session_state.model_choice
+    st.selectbox(t("sb_model"), choices, key=picker,
+                 format_func=lambda m: t("auto_recommended") if m == c.AUTO
+                 else rag_module.model_label(m), help=t("sb_model_help"),
+                 on_change=lambda: st.session_state.update(model_choice=st.session_state[picker]))
     with st.container(horizontal=True, gap="small"):
-        if st.button("Clear chat", icon=":material/delete_sweep:", width="stretch"):
+        if st.button(t("sb_clear"), icon=":material/delete_sweep:", width="stretch"):
             st.session_state.messages = []
-        st.download_button("Save chat", lambda m=list(st.session_state.messages): c.chat_notes(m),
+        notes_text = c.chat_notes(st.session_state.messages)  # in the current language
+        st.download_button(t("sb_save"), lambda text=notes_text: text,
                            file_name="lecture_chat.md", mime="text/markdown",
                            icon=":material/download:", width="stretch", on_click="ignore",
-                           disabled=not st.session_state.messages,
-                           help="Download this chat as study notes (Markdown), with the "
-                                "slides each answer came from.")
-    st.caption("Answers and practice questions come only from the slides and can still be "
-               "wrong. Check the slide shown with each one before relying on it.")
+                           disabled=not st.session_state.messages, help=t("sb_save_help"))
+    st.caption(t("sb_disclaimer"))
 
 
 # ---------- header ----------
-st.title("Lecture Notes Assistant", anchor=False)
-st.caption("Ask about your lectures, practise for the exam, or flip through the slides. "
-           "Every answer shows the slide it came from.")
+st.title(t("app_title"), anchor=False)
+st.caption(t("app_subtitle"))
 
-for level, text in st.session_state.notes:
-    getattr(st, level)(text)
+for level, key_, values in st.session_state.notes:
+    getattr(st, level)(t(key_, **values))
 
 if rag is None:
     if not files:
-        st.info("Upload one or more lecture PDFs in the sidebar to get started.",
-                icon=":material/upload_file:")
+        st.info(t("upload_start"), icon=":material/upload_file:")
     st.stop()
 
 n_lectures = len(rag.lectures)
 providers = {rag_module.split_ref(m)[0] for m in models}
 st.markdown(
-    f":violet-badge[:material/menu_book: {n_lectures} {'uploaded' if files else 'course'} "
-    f"lecture{'s' * (n_lectures > 1)}] "
-    f":blue-badge[:material/slideshow: {len(rag.chunks)} slides] "
-    ":green-badge[:material/translate: English · 한국어] "
-    f":gray-badge[:material/smart_toy: {len(models)} AI models"
-    f"{f' from {len(providers)} providers' if len(providers) > 1 else ''}] "
-    ":orange-badge[:material/verified: Answers cite their slides]")
+    f":violet-badge[:material/menu_book: {t('badge_lectures', n=n_lectures, uploaded=bool(files))}] "
+    f":blue-badge[:material/slideshow: {t('badge_slides', n=len(rag.chunks))}] "
+    ":green-badge[:material/translate: English · 한국어 · Русский] "
+    f":gray-badge[:material/smart_toy: {t('badge_models', n=len(models), p=len(providers))}] "
+    f":orange-badge[:material/verified: {t('badge_cites')}]")
 if not files:
-    st.caption("Demo: the lectures of *Design of Generative AI Application Systems*. "
-               "Upload your own PDFs in the sidebar to use those instead.")
+    st.caption(t("demo_caption"))
 
-mode = st.segmented_control("Mode", [c.ASK, c.PRACTICE, c.BROWSE, c.COMPARE], required=True,
-                            key="mode", label_visibility="collapsed", width="stretch")
+mode = st.segmented_control("Mode", c.MODES, required=True, key="mode", format_func=t,
+                            label_visibility="collapsed", width="stretch")
 
 {c.PRACTICE: ui.practice.page, c.BROWSE: ui.browse.page,
  c.COMPARE: ui.compare.page}.get(mode, ui.ask.page)()

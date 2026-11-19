@@ -29,6 +29,8 @@ def test_mentioned_lectures():
     assert mentioned_lectures("lecture 03 and L05", available) == {"L03", "L05"}
     assert mentioned_lectures("3강에서 청크란?", available) == {"L03"}
     assert mentioned_lectures("5차시 내용", available) == {"L05"}
+    assert mentioned_lectures("Что нужно сдать по лекции 1?", available) == {"L01"}
+    assert mentioned_lectures("урок 3: чанки", available) == {"L03"}
     assert mentioned_lectures("Is the L2 norm used?", available) == set()  # not lecture 2
     assert mentioned_lectures("Lesson 7", available) == set()  # no such lecture
 

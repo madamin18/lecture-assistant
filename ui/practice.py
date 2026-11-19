@@ -6,15 +6,25 @@ from openai import APIStatusError
 import config
 import rag as rag_module
 from ui import common as c
+from ui import i18n
+from ui.i18n import t
 
-KINDS = {"mixed": "Mixed", "mcq": "Multiple choice", "short": "Short answer"}
-LANGS = {"same": "Same as slides", "en": "English", "ko": "한국어"}
+KINDS = ["mixed", "mcq", "short"]
+LANGS = {"same": None, "en": "English", "ko": "한국어", "ru": "Русский"}  # None: t("qlang_same")
 LETTERS = "ABCDE"
+
+
+def kind_name(kind: str) -> str:
+    return t(f"kind_{kind}")
+
+
+def lang_name(code: str) -> str:
+    return LANGS[code] or t("qlang_same")
 
 
 def make_quiz(n: int, kind: str, lectures: list, topic: str, lang: str = "same"):
     info = {}
-    with st.spinner("Writing practice questions from your slides…"):
+    with st.spinner(t("quiz_spinner")):
         try:
             questions = c.rag().generate_quiz(n, kind, lectures, topic, lang, info=info,
                                               model=c.chosen_model())
@@ -25,9 +35,8 @@ def make_quiz(n: int, kind: str, lectures: list, topic: str, lang: str = "same")
         st.warning(config.BUSY_MESSAGE, icon=":material/hourglass_top:")
         return
     if not questions:
-        st.warning("Couldn't write questions from these slides this time. Please try again"
-                   + (" or try a different topic." if topic else ".")
-                   + (" A different AI model may do better." if c.chosen_model() else ""))
+        st.warning(t("quiz_none") + (t("quiz_none_topic") if topic else ".")
+                   + (t("quiz_other_model") if c.chosen_model() else ""))
         return
     st.session_state.quiz_count = st.session_state.get("quiz_count", 0) + 1
     st.session_state.quiz = {
@@ -35,7 +44,7 @@ def make_quiz(n: int, kind: str, lectures: list, topic: str, lang: str = "same")
         "responses": {}, "revealed": set(), "self": {}, "celebrated": False,
         "settings": {"n": n, "kind": kind, "lectures": lectures, "topic": topic, "lang": lang},
     }
-    st.toast(f"{len(questions)} questions ready. Good luck!", icon=":material/quiz:")
+    st.toast(t("quiz_ready", n=len(questions)), icon=":material/quiz:")
 
 
 def answer_key(qid: int, i: int) -> str:
@@ -86,22 +95,22 @@ def explain_question(q: dict):
     """Ask the assistant to explain a practice question (opens the Ask tab)."""
     right = q["options"][q["answer"]] if q["type"] == "mcq" else q["answer"]
     lec = q["hit"]["lecture"]  # naming the lecture makes the search look only there
-    if rag_module.language(q["question"]) == "ko":
-        ask = f'{lec}: {q["question"]} 정답이 "{right}"인 이유를 설명해 주세요.'
-    else:
-        ask = f'{lec}: {q["question"]} Explain why the answer is "{right}".'
+    ask = {"ko": f'{lec}: {q["question"]} 정답이 "{right}"인 이유를 설명해 주세요.',
+           "ru": f'{lec}: {q["question"]} Объясни, почему правильный ответ — «{right}».'}.get(
+        rag_module.language(q["question"]),
+        f'{lec}: {q["question"]} Explain why the answer is "{right}".')
     st.session_state.update(mode=c.ASK, pending_question=ask)
 
 
 def study_sheet(quiz) -> str:
     """Printable Markdown: questions first, answer key at the end."""
-    lines = ["# Practice questions", ""]
+    lines = [t("sheet_title"), ""]
     for i, q in enumerate(quiz["questions"], 1):
         lines.append(f"{i}. {q['question']}")
         if q["type"] == "mcq":
             lines += [f"   {LETTERS[j]}) {opt}" for j, opt in enumerate(q["options"])]
         lines.append("")
-    lines += ["---", "", "## Answers", ""]
+    lines += ["---", "", t("sheet_answers"), ""]
     for i, q in enumerate(quiz["questions"], 1):
         if q["type"] == "mcq":
             ans = f"{LETTERS[q['answer']]}) {q['options'][q['answer']]}"
@@ -112,25 +121,24 @@ def study_sheet(quiz) -> str:
 
 
 def show_source(q: dict, qid: int, i: int, explain: bool = False):
-    with st.expander(f"Source: {q['hit']['cite']} · {c.shorten(c.heading(q['hit']), 60)}",
+    with st.expander(t("source", cite=q["hit"]["cite"], title=c.shorten(c.heading(q["hit"]), 60)),
                      icon=":material/location_on:"):
         c.show_slide(q["hit"])
     if explain:
-        st.button("Explain this to me", key=f"explain_{qid}_{i}", icon=":material/forum:",
-                  on_click=explain_question, args=(q,),
-                  help="Ask the assistant about this question; it answers from the slides.")
+        st.button(t("explain_btn"), key=f"explain_{qid}_{i}", icon=":material/forum:",
+                  on_click=explain_question, args=(q,), help=t("explain_help"))
 
 
 def show_question(quiz: dict, i: int, q: dict):
     qid = quiz["id"]
-    kind = "Multiple choice" if q["type"] == "mcq" else "Short answer"
-    st.markdown(f":violet-badge[Question {i + 1}] :gray-badge[{kind}] "
+    kind = kind_name(q["type"])
+    st.markdown(f":violet-badge[{t('q_badge', n=i + 1)}] :gray-badge[{kind}] "
                 f":blue-badge[{q['hit']['lecture']}]")
     st.markdown(f"**{q['question']}**")
     if q["type"] == "mcq":
         chosen = quiz["responses"].get(i)
         opts = q["options"]
-        st.radio("Your answer", opts, key=answer_key(qid, i),
+        st.radio(t("your_answer"), opts, key=answer_key(qid, i),
                  index=opts.index(chosen) if chosen in opts else None,
                  format_func=lambda o, opts=opts: f"{LETTERS[opts.index(o)]}) {o}",
                  disabled=chosen is not None, on_change=record_choice, args=(i,),
@@ -138,28 +146,27 @@ def show_question(quiz: dict, i: int, q: dict):
         if chosen is not None:
             right = opts[q["answer"]]
             if chosen == right:
-                st.success(f"Correct: **{LETTERS[q['answer']]}) {right}**",
+                st.success(t("correct_msg", letter=LETTERS[q["answer"]], text=right),
                            icon=":material/check_circle:")
             else:
-                st.error(f"You picked **{LETTERS[opts.index(chosen)]}**. The answer is "
-                         f"**{LETTERS[q['answer']]}) {right}**", icon=":material/cancel:")
+                st.error(t("wrong_msg", picked=LETTERS[opts.index(chosen)],
+                           letter=LETTERS[q["answer"]], text=right), icon=":material/cancel:")
             if q["explanation"]:
                 st.caption(q["explanation"])
             show_source(q, qid, i, explain=chosen != right)
     else:
         revealed = i in quiz["revealed"]
-        st.text_area("Your answer", key=answer_key(qid, i), disabled=revealed,
-                     placeholder="Write your answer, then reveal the model answer to compare.",
-                     label_visibility="collapsed")
+        st.text_area(t("your_answer"), key=answer_key(qid, i), disabled=revealed,
+                     placeholder=t("short_placeholder"), label_visibility="collapsed")
         if not revealed:
-            st.button("Reveal model answer", key=f"reveal_{qid}_{i}", on_click=reveal,
+            st.button(t("reveal"), key=f"reveal_{qid}_{i}", on_click=reveal,
                       args=(i,), icon=":material/visibility:")
         else:
-            st.info(f"**Model answer:** {q['answer']}", icon=":material/lightbulb:")
+            st.info(t("model_answer", text=q["answer"]), icon=":material/lightbulb:")
             if q["explanation"]:
                 st.caption(q["explanation"])
             with st.container(horizontal=True, vertical_alignment="center"):
-                st.markdown("Did you get it right?")
+                st.markdown(t("did_you"))
                 st.feedback("thumbs", key=f"self_{qid}_{i}", on_change=self_grade, args=(i,))
             show_source(q, qid, i, explain=quiz["self"].get(i) == 0)
 
@@ -169,12 +176,12 @@ def show_quiz(quiz: dict):
     answered, correct = quiz_score(quiz)
     with st.container(border=True):
         a, b, col = st.columns(3)
-        a.metric("Answered", f"{answered} / {len(qs)}")
-        b.metric("Correct", correct)
-        col.metric("Score", f"{round(100 * correct / answered)}%" if answered else "–")
+        a.metric(t("m_answered"), f"{answered} / {len(qs)}")
+        b.metric(t("m_correct"), correct)
+        col.metric(t("m_score"), f"{round(100 * correct / answered)}%" if answered else "–")
         st.progress(answered / len(qs))
         if quiz.get("model"):
-            st.caption(f":material/smart_toy: Questions written by {c.model_name(quiz['model'])}")
+            st.caption(t("written_by", model=c.model_name(quiz["model"])))
 
     for i, q in enumerate(qs):
         with st.container(border=True):
@@ -183,24 +190,23 @@ def show_quiz(quiz: dict):
     if answered == len(qs):
         pct = round(100 * correct / len(qs))
         if pct >= 80:
-            st.success(f"Finished: {correct} / {len(qs)} ({pct}%). Excellent work!",
+            st.success(t("finished_great", c=correct, n=len(qs), pct=pct),
                        icon=":material/emoji_events:")
             if not quiz["celebrated"]:
                 quiz["celebrated"] = True
                 st.balloons()
         else:
-            st.info(f"Finished: {correct} / {len(qs)} ({pct}%). Review the source slides for "
-                    "the ones you missed, then try again.", icon=":material/school:")
+            st.info(t("finished", c=correct, n=len(qs), pct=pct), icon=":material/school:")
 
     missed = sum(result(quiz, i, q) is False for i, q in enumerate(qs))
     with st.container(horizontal=True):
-        st.button("New questions", icon=":material/refresh:", type="primary",
+        st.button(t("new_questions"), icon=":material/refresh:", type="primary",
                   on_click=lambda: st.session_state.update(quiz_regen=True))
         if missed and answered == len(qs):
-            st.button(f"Retry the {missed} I missed", icon=":material/replay:",
+            st.button(t("retry_missed", n=missed), icon=":material/replay:",
                       on_click=retry_quiz, args=(True,))
-        st.button("Try again", icon=":material/restart_alt:", on_click=retry_quiz)
-        st.download_button("Download study sheet", study_sheet(quiz),
+        st.button(t("try_again"), icon=":material/restart_alt:", on_click=retry_quiz)
+        st.download_button(t("download_sheet"), study_sheet(quiz),
                            file_name="practice_questions.md", mime="text/markdown",
                            icon=":material/download:", on_click="ignore")
 
@@ -208,32 +214,32 @@ def show_quiz(quiz: dict):
 def page():
     lectures = dict(c.rag().lectures)
     with st.form("quiz_settings"):
-        st.subheader(":material/edit_note: Build a practice exam", anchor=False)
+        st.subheader(t("build_exam"), anchor=False)
         chosen = []
         if len(lectures) > 1:
-            chosen = st.pills("Lectures (leave empty for all)", list(lectures),
+            chosen = st.pills(t("lectures_pick"), list(lectures),
                               selection_mode="multi", key="quiz_lectures",
                               format_func=lambda t: f"{t} {lectures[t]}")
-        topic = st.text_input("Topic (optional)",
-                              placeholder="e.g. hallucinations. Leave empty to cover everything.")
+        topic = st.text_input(t("topic"), placeholder=t("topic_placeholder"))
         with st.container(horizontal=True):
-            n = st.segmented_control("Questions", [5, 10, 15], default=5, required=True)
-            kind = st.segmented_control("Type", list(KINDS), format_func=KINDS.get,
+            n = st.segmented_control(t("n_questions"), [5, 10, 15], default=5, required=True)
+            kind = st.segmented_control(t("q_type"), KINDS, format_func=kind_name,
                                         default="mixed", required=True)
-        lang = st.segmented_control("Language", list(LANGS), format_func=LANGS.get,
-                                    default="same", required=True)
-        go = st.form_submit_button("Generate questions", type="primary", width="stretch",
+        lang = st.segmented_control(t("q_lang"), list(LANGS), format_func=lang_name,
+                                    default="ru" if i18n.lang() == "ru" else "same",
+                                    required=True)
+        go = st.form_submit_button(t("generate"), type="primary", width="stretch",
                                    icon=":material/auto_awesome:")
 
     if go:
         make_quiz(n, kind, chosen, topic, lang)
     elif st.session_state.pop("quiz_autogen", False):
-        make_quiz(5, "mixed", st.session_state.quiz_lectures, "", "same")
+        make_quiz(5, "mixed", st.session_state.quiz_lectures, "",
+                  "ru" if i18n.lang() == "ru" else "same")
     elif st.session_state.pop("quiz_regen", False) and st.session_state.quiz:
         make_quiz(**st.session_state.quiz["settings"])
 
     if st.session_state.quiz:
         show_quiz(st.session_state.quiz)
     else:
-        st.caption(":material/info: Questions are checked against the slides they cite. "
-                   "Answer one and you'll see right away whether you got it.")
+        st.caption(t("practice_caption"))

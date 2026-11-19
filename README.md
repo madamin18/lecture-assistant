@@ -15,6 +15,12 @@ Preloaded with all 9 lectures of *Design of Generative AI Application Systems* (
 Only the slide PDFs are published; the lab handouts, readings and quiz keys from the course
 packages are not.
 
+The interface is in **English or Russian** (the ENG / RUS switch at the top of the sidebar), and
+questions can be asked in English, Korean or Russian: a question in another language than the
+slides is translated for the search (and the translation is shown to the model next to the
+original), and the answer comes back in the question's language with key terms from the slides
+in parentheses, e.g. галлюцинация (hallucination).
+
 Four tabs:
 - **Ask** (English or 한국어): chat with the lecture slides. Citations appear as badges in the
   answer. Each answer shows how it was found (translation, hybrid search, which model answered,
@@ -201,7 +207,7 @@ with no API key, no internet and no PyTorch. GitHub Actions runs them on every p
 | `config.py` | settings and the provider list |
 | `answer_cache.py`, `warm_cache.py` | saved answers for instant demo questions |
 | `app.py` | the website: page setup, sidebar, tabs |
-| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), plus shared helpers (`common.py`) and server-wide caches (`resources.py`) |
+| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English and Russian (`i18n.py`) |
 | `evaluate.py`, `eval_quiz.py`, `compare_models.py` | measurements on `eval/test_set.jsonl` |
 | `tests/` | unit tests (no API key needed) |
 

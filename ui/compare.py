@@ -14,11 +14,10 @@ from openai import APIStatusError
 
 import rag as rag_module
 from ui import common as c
-from ui import resources
+from ui import i18n, resources
+from ui.i18n import t
 
 LETTERS = "ABC"
-EXAMPLES = ["What is a hallucination?", "How is recall@k calculated?",
-            "Why does chunk overlap help retrieval?", "에이전트와 워크플로의 차이는 무엇인가요?"]
 BENCHMARK = Path(__file__).resolve().parent.parent / "eval" / "model_comparison.json"
 
 
@@ -43,15 +42,15 @@ def default_models(models: list) -> list:
     return [first, other]
 
 
-def use_example():
-    st.session_state.compare_q = st.session_state.compare_example
-    st.session_state.compare_example = None
+def use_example(widget_key: str):
+    st.session_state.compare_q = st.session_state[widget_key]
+    st.session_state[widget_key] = None
 
 
 def run(question: str, picked: list, blind: bool):
     rag = c.rag()
     info = {}
-    with st.spinner("Searching the slides…"):
+    with st.spinner(t("cmp_searching")):
         messages, hits = rag.prepare(question, c.top_k(), None, c.lecture_filter(), info)
     st.session_state.compare_count = st.session_state.get("compare_count", 0) + 1
     cmp = {"id": st.session_state.compare_count, "question": question, "hits": hits,
@@ -62,7 +61,8 @@ def run(question: str, picked: list, blind: bool):
         cols = st.columns(len(order))
         slots = [col.empty() for col in cols]
         for i, slot in enumerate(slots):
-            slot.info(f"{label(cmp, i, order[i])} is writing…", icon=":material/hourglass_top:")
+            slot.info(t("cmp_writing", name=label(cmp, i, order[i])),
+                      icon=":material/hourglass_top:")
         with ThreadPoolExecutor(max_workers=len(order)) as pool:  # all models at once
             jobs = {pool.submit(ask_one, rag, messages, ref): i for i, ref in enumerate(order)}
             for job in as_completed(jobs):  # show each answer as soon as it arrives
@@ -76,24 +76,24 @@ def run(question: str, picked: list, blind: bool):
 
 def label(cmp: dict, i: int, ref: str) -> str:
     hidden = cmp["blind"] and cmp["vote"] is None
-    return f"Model {LETTERS[i]}" if hidden else rag_module.model_label(ref)
+    return t("cmp_model_x", letter=LETTERS[i]) if hidden else rag_module.model_label(ref)
 
 
 def show_answer(cmp: dict, i: int):
     r = cmp["results"][i]
     won = cmp["vote"] == i
-    st.markdown(f"**{label(cmp, i, r['model'])}**" + (" :green-badge[:material/thumb_up: your pick]"
-                                                      if won else ""))
+    st.markdown(f"**{label(cmp, i, r['model'])}**" + (f" {t('cmp_your_pick')}" if won else ""))
     if r["text"] is None:
-        st.warning(f"No answer: {r['error'] or 'busy'}.", icon=":material/error:")
+        st.warning(t("cmp_no_answer", reason=i18n.reason(r["error"] or "busy")),
+                   icon=":material/error:")
         return
     f = rag_module.citation_facts(r["text"], cmp["hits"])
-    badges = [f":gray-badge[:material/timer: {r['seconds']:.1f} s]",
-              f":violet-badge[{f['cited']} slide{'s' * (f['cited'] != 1)} cited]"]
+    badges = [f":gray-badge[:material/timer: {t('cmp_secs', s=r['seconds'])}]",
+              f":violet-badge[{t('cmp_cited', n=f['cited'])}]"]
     if f["made_up"]:
-        badges.append(f":red-badge[{f['made_up']} made-up citation{'s' * (f['made_up'] > 1)}]")
+        badges.append(f":red-badge[{t('cmp_made_up', n=f['made_up'])}]")
     if f["refused"]:
-        badges.append(":orange-badge[refused]")
+        badges.append(f":orange-badge[{t('cmp_refused')}]")
     st.markdown(" ".join(badges))
     st.markdown(rag_module.badge_citations(r["text"]))
 
@@ -102,14 +102,13 @@ def vote(verdict):
     cmp = st.session_state.comparison
     cmp["vote"] = verdict
     resources.record_vote(cmp["results"], verdict)
-    st.toast("Thanks! Your vote is in the leaderboard below.", icon=":material/how_to_vote:")
+    st.toast(t("cmp_thanks"), icon=":material/how_to_vote:")
 
 
 def show_comparison(cmp: dict):
     st.markdown(f"#### :material/help: {cmp['question']}")
     if not cmp["results"]:
-        st.info("No slide is close enough to this question, so every model would get the same "
-                "refusal. Try a question about the lectures.", icon=":material/search_off:")
+        st.info(t("cmp_refusal_all"), icon=":material/search_off:")
         return
     with st.container(horizontal=True, gap="medium"):
         for i in range(len(cmp["results"])):
@@ -118,24 +117,24 @@ def show_comparison(cmp: dict):
 
     answered = [i for i, r in enumerate(cmp["results"]) if r["text"] is not None]
     if cmp["vote"] is None and len(answered) >= 2:
-        st.markdown("**Which answer is better?** Check the cited slides below before you vote.")
+        st.markdown(t("cmp_vote_q"))
         with st.container(horizontal=True):
             for i in answered:
-                st.button(f"{label(cmp, i, cmp['results'][i]['model'])} is better",
+                st.button(t("cmp_better", name=label(cmp, i, cmp["results"][i]["model"])),
                           key=f"vote_{cmp['id']}_{i}", on_click=vote, args=(i,),
                           icon=":material/thumb_up:", type="primary")
-            st.button("Tie", key=f"vote_{cmp['id']}_tie", on_click=vote, args=("tie",),
+            st.button(t("cmp_tie"), key=f"vote_{cmp['id']}_tie", on_click=vote, args=("tie",),
                       icon=":material/balance:")
-            st.button("Both bad" if len(answered) == 2 else "All bad",
+            st.button(t("cmp_both_bad") if len(answered) == 2 else t("cmp_all_bad"),
                       key=f"vote_{cmp['id']}_bad", on_click=vote, args=("bad",),
                       icon=":material/thumb_down:")
     elif cmp["vote"] is not None:
         v = cmp["vote"]
-        verdict = ({"tie": "a tie", "bad": "no good answer"}[v] if isinstance(v, str)
+        verdict = (t("cmp_verdict_tie") if v == "tie" else t("cmp_verdict_bad") if v == "bad"
                    else rag_module.model_label(cmp["results"][v]["model"]))
-        st.success(f"You voted for {verdict}.", icon=":material/how_to_vote:")
+        st.success(t("cmp_voted", verdict=verdict), icon=":material/how_to_vote:")
 
-    with st.expander(f"Slides every model read ({len(cmp['hits'])})", icon=":material/slideshow:"):
+    with st.expander(t("cmp_slides_read", n=len(cmp["hits"])), icon=":material/slideshow:"):
         cited = {h["cite"] for r in cmp["results"] if r["text"]
                  for h in rag_module.cited_hits(r["text"], cmp["hits"])}
         for h in cmp["hits"]:
@@ -148,67 +147,66 @@ def leaderboard():
     board = resources.vote_board()
     with board["lock"]:
         rows = {m: dict(v) for m, v in board["models"].items()}
-    st.markdown("##### :material/leaderboard: Visitors' votes")
+    st.markdown(t("cmp_votes_title"))
     if not any(r["votes"] for r in rows.values()):
-        st.caption("No votes yet. Compare two models above and vote for the better answer.")
+        st.caption(t("cmp_no_votes"))
     else:
+        win = t("col_win_rate")
         table = pd.DataFrame([{
-            "Model": rag_module.model_label(m).split(" · ", 1)[-1],
-            "Win rate": (r["wins"] + 0.5 * r["ties"]) / r["votes"],
-            "Votes": r["votes"], "Ties": r["ties"], "Both bad": r["bad"],
-            "Avg time (s)": round(r["seconds"] / r["votes"], 1),
-            "No answer": r["failures"],
-        } for m, r in rows.items() if r["votes"]]).sort_values("Win rate", ascending=False)
+            t("col_model"): rag_module.model_label(m).split(" · ", 1)[-1],
+            win: (r["wins"] + 0.5 * r["ties"]) / r["votes"],
+            t("col_votes"): r["votes"], t("col_ties"): r["ties"],
+            t("col_both_bad"): r["bad"],
+            t("col_avg_time"): round(r["seconds"] / r["votes"], 1),
+            t("col_no_answer"): r["failures"],
+        } for m, r in rows.items() if r["votes"]]).sort_values(win, ascending=False)
         st.dataframe(table, hide_index=True, column_config={
-            "Win rate": st.column_config.ProgressColumn(
-                min_value=0.0, max_value=1.0, format="percent",
-                help="Wins, plus half of each tie, out of the comparisons it answered")})
-        st.caption("Votes from everyone using this site since the server last restarted. "
-                   "A tie counts as half a win.")
+            win: st.column_config.ProgressColumn(min_value=0.0, max_value=1.0, format="percent",
+                                                 help=t("win_rate_help"))})
+        st.caption(t("cmp_votes_caption"))
 
     if BENCHMARK.exists():
         data = json.loads(BENCHMARK.read_text(encoding="utf-8"))
-        st.markdown("##### :material/science: Measured on the test set")
+        st.markdown(t("bench_title"))
         st.dataframe(pd.DataFrame([{
-            "Model": rag_module.model_label(m["model"]),
-            "Correct": m.get("answer_correct_%"), "Partly correct": m.get("answer_partial_%"),
-            "Cites a right slide": m.get("citation_accuracy_%"),
-            "Made-up citations": m.get("made_up_citations"),
-            "Wrongly refused": m.get("false_refusal_%"),
-            "Refused off-topic": m.get("correct_refusal_%"),
-            "Avg time (s)": m.get("avg_seconds"),
+            t("col_model"): rag_module.model_label(m["model"]),
+            t("col_correct"): m.get("answer_correct_%"),
+            t("col_partial"): m.get("answer_partial_%"),
+            t("col_right_slide"): m.get("citation_accuracy_%"),
+            t("col_made_up"): m.get("made_up_citations"),
+            t("col_false_refusal"): m.get("false_refusal_%"),
+            t("col_off_topic"): m.get("correct_refusal_%"),
+            t("col_avg_time"): m.get("avg_seconds"),
         } for m in data["models"]]), hide_index=True)
-        st.caption(f"{data['n_questions']} questions from eval/test_set.jsonl ({data['date']}); "
-                   f"percentages. Answers graded by {rag_module.model_label(data['judge'])}, the "
-                   "same judge for every model.")
+        st.caption(t("bench_caption", n=data["n_questions"], date=data["date"],
+                     judge=rag_module.model_label(data["judge"])))
 
 
 def page():
     models = resources.available_models(c.version())
-    st.subheader(":material/compare_arrows: Which AI model answers best?", anchor=False)
-    st.caption("Every model gets the same question and the same slides, so only the writing "
-               "differs. Vote for the better answer; the names stay hidden until you vote.")
+    st.subheader(t("cmp_title"), anchor=False)
+    st.caption(t("cmp_caption"))
     if len(models) < 2:
-        st.info("Only one AI model is available. Add another provider's API key (e.g. "
-                "GROQ_API_KEY) to compare models.", icon=":material/key:")
+        st.info(t("cmp_one_model"), icon=":material/key:")
         return
 
-    st.pills("Examples", EXAMPLES, key="compare_example", on_change=use_example,
-             label_visibility="collapsed")
+    examples_key = f"compare_example_{i18n.lang()}"
+    st.pills("Examples", t("cmp_examples"), key=examples_key, on_change=use_example,
+             args=(examples_key,), label_visibility="collapsed")
     with st.form("compare_form"):
-        picked = st.multiselect("Models (2 or 3)", models, default=default_models(models),
+        picked = st.multiselect(t("cmp_models"), models, default=default_models(models),
                                 max_selections=3, format_func=rag_module.model_label,
                                 key="compare_models")
-        question = st.text_input("Question", key="compare_q",
-                                 placeholder="Ask about the lectures, in English or Korean")
-        blind = st.toggle("Hide model names until I vote", value=True, key="compare_blind")
-        go = st.form_submit_button("Compare answers", type="primary", width="stretch",
+        question = st.text_input(t("cmp_question"), key="compare_q",
+                                 placeholder=t("cmp_placeholder"))
+        blind = st.toggle(t("cmp_blind"), value=True, key="compare_blind")
+        go = st.form_submit_button(t("cmp_go"), type="primary", width="stretch",
                                    icon=":material/play_arrow:")
     if go:
         if len(picked) < 2:
-            st.warning("Pick at least two models.", icon=":material/warning:")
+            st.warning(t("cmp_pick2"), icon=":material/warning:")
         elif not question.strip():
-            st.warning("Type a question first.", icon=":material/warning:")
+            st.warning(t("cmp_need_q"), icon=":material/warning:")
         else:
             run(question.strip(), picked, blind)
 

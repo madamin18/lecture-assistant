@@ -564,6 +564,230 @@
      "score": 0.8748
     }
    ]
+  },
+  "что такое галлюцинация?|k=8|lectures=": {
+   "answer": "Галлюцинация — это неподтвержденное сгенерированное утверждение (unsupported generated claim) [L01 slide 23, L01 slide 59, L01 slide 56].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 1.1547667980194092,
+    "translation": "What is a hallucination?",
+    "lectures": [],
+    "named": false,
+    "answer_s": 1.076336145401001,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L01 slide 23",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.8614
+    },
+    {
+     "cite": "L01 slide 59",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.8001
+    },
+    {
+     "cite": "L01 slide 56",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7904
+    },
+    {
+     "cite": "L02 slide 35",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7918
+    },
+    {
+     "cite": "L01 slide 60",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7871
+    },
+    {
+     "cite": "L02 slide 60",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.7853
+    },
+    {
+     "cite": "L09 slide 5",
+     "pdf": "data/slides/L09_Self-Improving_Agents.pdf",
+     "score": 0.7851
+    },
+    {
+     "cite": "L09 slide 13",
+     "pdf": "data/slides/L09_Self-Improving_Agents.pdf",
+     "score": 0.7818
+    }
+   ]
+  },
+  "делает ли повышение температуры ответы модели точнее?|k=8|lectures=": {
+   "answer": "Нет, температура меняет концентрацию распределения (selection probabilities), но не добавляет знаний или истины [L02 slide 54, L02 slide 59]. Выше температура не делает идеи лучше сама по себе — она лишь изменяет вероятности выбора, а полезность определяется оценкой [L02 slide 54].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.9349429607391357,
+    "translation": "Does increasing the temperature make the model's answers more accurate?",
+    "lectures": [],
+    "named": false,
+    "answer_s": 1.683297872543335,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L02 slide 59",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8226
+    },
+    {
+     "cite": "L07 slide 29",
+     "pdf": "data/slides/L07_Generative_AI_in_Industry.pdf",
+     "score": 0.8173
+    },
+    {
+     "cite": "L02 slide 17",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8147
+    },
+    {
+     "cite": "L02 slide 54",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.836
+    },
+    {
+     "cite": "L02 slide 16",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.8331
+    },
+    {
+     "cite": "L02 slide 14",
+     "pdf": "data/slides/L02_LLM_Essentials.pdf",
+     "score": 0.831
+    },
+    {
+     "cite": "L07 slide 46",
+     "pdf": "data/slides/L07_Generative_AI_in_Industry.pdf",
+     "score": 0.8115
+    },
+    {
+     "cite": "L04 slide 54",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.8304
+    }
+   ]
+  },
+  "как вычисляется recall@k?|k=8|lectures=": {
+   "answer": "Recall@k вычисляется как количество найденных релевантных элементов в топ-$k$, деленное на общее количество известных релевантных элементов (или все помеченные релевантные элементы) [L06 slide 14, L04 slide 30]. \n\nНапример, для фиксированного отсечения $k$ это отношение найденных ожидаемых идентификаторов ко всем ожидаемым идентификаторам [L06 slide 49].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.8760073184967041,
+    "translation": "How is recall@k calculated?",
+    "lectures": [],
+    "named": false,
+    "answer_s": 1.4739255905151367,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L06 slide 14",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8629
+    },
+    {
+     "cite": "L06 slide 49",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.854
+    },
+    {
+     "cite": "L04 slide 30",
+     "pdf": "data/slides/L04_RAG_II_Retrieval_and_Grounding.pdf",
+     "score": 0.8416
+    },
+    {
+     "cite": "L06 slide 19",
+     "pdf": "data/slides/L06_RAG_Evaluation.pdf",
+     "score": 0.8214
+    },
+    {
+     "cite": "L03 slide 37",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8115
+    },
+    {
+     "cite": "L03 slide 21",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.805
+    },
+    {
+     "cite": "L03 slide 39",
+     "pdf": "data/slides/L03_RAG_I_Ingestion_and_Indexing.pdf",
+     "score": 0.8023
+    },
+    {
+     "cite": "L01 slide 27",
+     "pdf": "data/slides/L01_Generative_AI_Systems.pdf",
+     "score": 0.7973
+    }
+   ]
+  },
+  "чем фиксированный workflow отличается от агента?|k=8|lectures=": {
+   "answer": "Разница между фиксированным workflow (fixed workflow) и агентом заключается в том, кто выбирает следующий шаг во время выполнения (at runtime) [L08 slide 3]. В фиксированном workflow путь определяет код, в то время как в цикле агента (agent loop) модель сама выбирает действие, вызывает инструмент, наблюдает результат и делает новый выбор с использованием новых данных [L08 slide 3].",
+   "trace": {
+    "n_slides": 491,
+    "n_lectures": 9,
+    "k": 8,
+    "search_s": 0.966691255569458,
+    "translation": "What is the difference between a fixed workflow and an agent?",
+    "lectures": [],
+    "named": false,
+    "answer_s": 1.033254623413086,
+    "model": "gemini-3.5-flash-lite"
+   },
+   "hits": [
+    {
+     "cite": "L08 slide 3",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8932
+    },
+    {
+     "cite": "L08 slide 44",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8861
+    },
+    {
+     "cite": "L08 slide 2",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8636
+    },
+    {
+     "cite": "L08 slide 1",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8511
+    },
+    {
+     "cite": "L08 slide 37",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8563
+    },
+    {
+     "cite": "L08 slide 8",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8625
+    },
+    {
+     "cite": "L08 slide 7",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8535
+    },
+    {
+     "cite": "L08 slide 10",
+     "pdf": "data/slides/L08_Agentic_Workflows.pdf",
+     "score": 0.8445
+    }
+   ]
   }
  }
 }

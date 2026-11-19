@@ -58,6 +58,13 @@ def test_korean_question_is_translated_for_english_slides():
     assert hits[0]["cite"] == "L03 slide 1"
 
 
+def test_cross_language_prompt_includes_the_translation(no_threshold):
+    client = FakeClient(default="What must students submit?")
+    messages, _ = make_rag(client=client).prepare("Что студенты должны сдать?", k=2)
+    assert "(In English: What must students submit?)" in messages[-1]["content"]
+    assert messages[-1]["content"].endswith("(Answer in Russian.)")
+
+
 def test_prepare_refuses_without_ai_when_nothing_is_close(monkeypatch):
     monkeypatch.setattr(config, "MIN_SCORE", 0.99)
     client = FakeClient()

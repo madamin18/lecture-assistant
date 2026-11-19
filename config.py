@@ -112,3 +112,13 @@ DEMO_QUESTIONS = {
         "What is the difference between a fixed workflow and an agent?",
     ":material/translate: 환각이란 무엇인가요?": "환각이란 무엇인가요?",
 }
+# The same starter questions when the interface is in Russian (also prepared by warm_cache.py).
+DEMO_QUESTIONS_RU = {
+    ":material/help: Что такое галлюцинация?": "Что такое галлюцинация?",
+    ":material/thermostat: Делает ли температура ответы точнее?":
+        "Делает ли повышение температуры ответы модели точнее?",
+    ":material/analytics: Как считается recall@k?": "Как вычисляется recall@k?",
+    ":material/account_tree: Workflow или агент?":
+        "Чем фиксированный workflow отличается от агента?",
+    ":material/translate: What is a hallucination?": "What is a hallucination?",
+}
