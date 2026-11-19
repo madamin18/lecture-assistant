@@ -102,9 +102,13 @@ def make_rag(chunks=CHUNKS, client=None):
 
 @pytest.fixture(autouse=True)
 def isolated(monkeypatch):
-    """Two fake models, no cooldowns left over from other tests, and no real waiting."""
+    """Two fake models from the main provider only (keys in .env don't matter), no cooldowns
+    left over from other tests, and no real waiting."""
     monkeypatch.setattr(config, "LLM_MODEL", "m1")
     monkeypatch.setattr(config, "FALLBACK_MODELS", ["m1", "m2"])
+    monkeypatch.setattr(config, "MAIN_PROVIDER", "gemini")
+    for provider in config.PROVIDERS.values():
+        monkeypatch.setitem(provider, "key", None)
     monkeypatch.setattr(rag.time, "sleep", lambda s: None)
     rag._cooldown_until.clear()
     yield

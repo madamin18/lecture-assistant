@@ -10,10 +10,42 @@ INDEX_DIR = "index"               # ingest.py writes chunks.json + embeddings.np
 # Free local embedding model that handles English and Korean.
 EMBED_MODEL = "intfloat/multilingual-e5-small"
 
-# LLM used for answering. Works with any OpenAI-compatible API.
-# Gemini: set GEMINI_API_KEY + LLM_BASE_URL in .env.  OpenAI: set OPENAI_API_KEY only.
-LLM_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL") or None
+# ---------- AI providers ----------
+# Any OpenAI-compatible service works. A provider is used only when its API key is set (.env
+# locally, Secrets on Streamlit Cloud). A model is written "provider:model", e.g.
+# "groq:qwen/qwen3.8-27b"; a name without a provider ("gemini-3.5-flash-lite") belongs to the
+# main provider (Gemini, or OpenAI if only OPENAI_API_KEY is set).
+#   auto:  models added to the "Auto" fallback chain, after the main provider's models
+#          (override with e.g. GROQ_MODELS=a,b in .env)
+#   show:  which of the provider's models appear in the model picker (regex on the model id);
+#          the list itself is fetched from the provider, so it stays current
+# Free tiers (Nov 2026): Groq 1,000 requests/day per model (qwen3.8-27b, gpt-oss-120b/20b);
+# OpenRouter 50 requests/day in total on its ":free" models (1,000 after buying $10 of credit).
+PROVIDERS = {
+    "gemini": {"label": "Gemini", "key_env": "GEMINI_API_KEY",
+               "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/"},
+    "groq": {"label": "Groq", "key_env": "GROQ_API_KEY",
+             "base_url": "https://api.groq.com/openai/v1",
+             "auto": ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"],
+             "show": r"^(?!.*(whisper|orpheus|guard|tts|playai|distil|compound)).*$"},
+    "openrouter": {"label": "OpenRouter", "key_env": "OPENROUTER_API_KEY",
+                   "base_url": "https://openrouter.ai/api/v1",
+                   "auto": ["google/gemma-4-31b-it:free"],
+                   "show": r":free$"},
+    "openai": {"label": "OpenAI", "key_env": "OPENAI_API_KEY", "base_url": None},
+}
+for _name, _p in PROVIDERS.items():
+    _p["key"] = os.getenv(_p["key_env"])
+    _env_models = os.getenv(f"{_name.upper()}_MODELS")
+    if _env_models:
+        _p["auto"] = [m.strip() for m in _env_models.split(",") if m.strip()]
+
+MAIN_PROVIDER = "gemini" if PROVIDERS["gemini"]["key"] or not PROVIDERS["openai"]["key"] \
+    else "openai"
+LLM_API_KEY = PROVIDERS[MAIN_PROVIDER]["key"]
+LLM_BASE_URL = os.getenv("LLM_BASE_URL") or PROVIDERS[MAIN_PROVIDER]["base_url"]
+PROVIDERS[MAIN_PROVIDER]["base_url"] = LLM_BASE_URL
+
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
 # Tried in order if the main model is busy (503), rate-limited (429), unavailable (404) or too
 # slow (LLM_TIMEOUT). The free tier has a separate DAILY request quota per model (e.g. 500 for
@@ -24,6 +56,12 @@ FALLBACK_MODELS = [m.strip() for m in os.getenv(
     "FALLBACK_MODELS",
     "gemini-3.5-flash-lite,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash"
 ).split(",") if m.strip()]
+
+
+def available_providers() -> list:
+    """Providers with an API key, main provider first."""
+    return [MAIN_PROVIDER] + [n for n, p in PROVIDERS.items() if p["key"] and n != MAIN_PROVIDER]
+
 
 LLM_TIMEOUT = 20          # seconds to wait for a model before trying the next one
 COOLDOWN_SECONDS = 120    # skip a model that just failed for this long (shared by all visitors)

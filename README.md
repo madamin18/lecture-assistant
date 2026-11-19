@@ -15,7 +15,7 @@ Preloaded with all 9 lectures of *Design of Generative AI Application Systems* (
 Only the slide PDFs are published; the lab handouts, readings and quiz keys from the course
 packages are not.
 
-Three tabs:
+Four tabs:
 - **Ask** (English or 한국어): chat with the lecture slides. Citations appear as badges in the
   answer. Each answer shows how it was found (translation, hybrid search, which model answered,
   timings), the cited slides as images, a relevance table of the other slides searched, thumbs
@@ -32,14 +32,33 @@ Three tabs:
 - **Browse lectures**: a card per lecture with its cover slide, a slide viewer whose slider shows
   each slide's title, and shortcuts to ask about a slide, search one lecture, or get a
   5-question quiz on it.
+- **Compare models**: one question goes to 2-3 AI models at once (e.g. Gemini vs Qwen on Groq),
+  with the same slides, so only the writing differs. Each answer shows its time, how many slides
+  it cites and any made-up citations. The names stay hidden until you vote for the better
+  answer; votes from everyone add up in a leaderboard, next to the test-set results from
+  `compare_models.py`.
+
+The sidebar's **AI model** picker chooses who writes answers and practice questions: "Auto"
+(recommended) or any model your API keys can use (the list is fetched from each provider).
 
 Styling lives in `.streamlit/config.toml` (light and dark theme, fonts, radii); no custom CSS.
 
 ## Setup
 ```bash
 pip install -r requirements.txt
-cp .env.example .env          # then put your API key in .env
+cp .env.example .env          # then put your API key(s) in .env
 ```
+One key is enough. More providers give you more models to compare and more free requests per
+day, since each provider (and each model) has its own daily quota:
+
+| Provider | Key in `.env` | Free tier (Nov 2026) | Get a key |
+|---|---|---|---|
+| Google Gemini (main) | `GEMINI_API_KEY` | 500 requests/day per flash-lite model | https://aistudio.google.com/apikey |
+| Groq | `GROQ_API_KEY` | 1,000 requests/day per model: `qwen/qwen3.8-27b`, `openai/gpt-oss-120b`, `openai/gpt-oss-20b` (Llama may need a paid plan) | https://console.groq.com/keys |
+| OpenRouter | `OPENROUTER_API_KEY` | 50 requests/day in total on `:free` models (Gemma 4, Nemotron, ...) | https://openrouter.ai/keys |
+
+Any other OpenAI-compatible service can be added to `PROVIDERS` in `config.py`.
+`python check_models.py` lists the models each key can use and tests the ones Auto uses.
 Put the lecture PDFs in `data/slides/`, named like `L03_RAG_I_Ingestion_and_Indexing.pdf`.
 The `L03` part becomes the start of the citation tag (`[L03 slide 14]`) and the rest becomes the
 lecture title shown in the app.
@@ -50,6 +69,8 @@ python ingest.py                     # build the index (re-run whenever slides c
 python rag.py "What is RAG?"         # quick test in the terminal
 python -m streamlit run app.py       # website at http://localhost:8501
 python warm_cache.py                 # prepare instant answers for the demo questions
+python check_models.py               # which models each API key can use
+python compare_models.py --auto      # score every Auto model on the test set
 ```
 `warm_cache.py` stores answers for the starter questions and the demo path in
 `index/answer_cache.json`; the site shows them instantly (and they still work if the AI service
@@ -96,9 +117,21 @@ instant too. Follow-up questions are always answered fresh.
    and options are shuffled so the right answer isn't always B or C.
 
 ## Models and reliability
-- Default: `gemini-3.5-flash-lite` (answers in 1-3 s); fallbacks `gemini-3-flash-preview`,
-  `gemini-3.1-flash-lite`, `gemini-3.5-flash`. In testing (Nov 2026) `gemini-3.5-flash` was often
-  overloaded (timeouts, 503) and `gemini-flash-latest` / `3.7-flash` / `3.8-flash` timed out.
+- **Auto** tries, in order: `gemini-3.5-flash-lite` (answers in 1-3 s), `gemini-3-flash-preview`,
+  `gemini-3.1-flash-lite`, `gemini-3.5-flash`, then each other provider with a key: Groq's
+  `openai/gpt-oss-120b` and `qwen/qwen3.8-27b`, then OpenRouter's `google/gemma-4-31b-it:free`
+  (`auto` in `config.PROVIDERS`, or `GROQ_MODELS=...` in `.env`). In testing (Nov 2026)
+  `gemini-3.5-flash` was often overloaded (timeouts, 503) and `gemini-flash-latest` /
+  `3.7-flash` / `3.8-flash` timed out.
+- Models are written `provider:model` (`groq:qwen/qwen3.8-27b`); a bare name is a Gemini model.
+  A model picked in the sidebar is tried first, then Auto; the answer's "How I found this" shows
+  which model answered and why any before it didn't. The Compare tab never falls back: it shows
+  "No answer: rate limit…" instead, so you know which model wrote what.
+- A rejected key (401/403) skips that provider for 10 minutes without stopping the others; a
+  model that doesn't exist (404, e.g. a retired free model) is skipped for an hour; a request too
+  large for one model's free tier (413) just moves on to the next model.
+- Some open models (Qwen) write their reasoning in `<think>...</think>` before the answer; it is
+  removed, also while streaming.
 - **Free-tier quotas are per model and per day** (500 requests for the flash-lite models, 20 for
   `gemini-3.5-flash`; they reset at midnight Pacific time, 17:00 KST). A full graded evaluation
   run uses about 140 requests, so three runs in one day used up `gemini-3.1-flash-lite`. Listing
@@ -109,25 +142,46 @@ instant too. Follow-up questions are always answered fresh.
   quickly, the app waits 2 s and tries once more before saying the service is busy.
 - A model that returns an empty reply (e.g. blocked by a safety filter) is treated like a failure,
   so the next model answers instead of the student getting a blank answer.
-- The app reloads `rag.py`, `config.py`, `ingest.py`, the demo index and the saved answers when
-  they change, so a deploy that only touches those files takes effect without rebooting the
-  server.
+- The app reloads its modules (`rag.py`, `config.py`, `ingest.py`, `ui/`), the demo index and
+  the saved answers when they change, so a deploy that only touches those files takes effect
+  without rebooting the server.
 - All visitors share one search object, so it keeps no per-question state: each search fills in
   its own `info` dict (translation, lectures searched, model), and two people asking at once
   can't see each other's "How I found this" steps.
-- `python check_models.py` shows which models currently answer with your key.
+- `python check_models.py` shows which models currently answer with your keys.
+
+### Which model is better? (`compare_models.py`)
+Every model answers the test-set questions from the same slides (searched once), and one fixed
+judge grades all of them, so only the model differs. It reports answer correctness, citation
+accuracy, made-up citations, false and correct refusals, and speed, writes
+`eval/model_comparison.json` (shown in the Compare tab under the visitors' votes) and every
+answer to `eval/model_answers.jsonl`. It paces requests and waits out per-minute rate limits;
+Groq's free tier allows about 4 answers a minute per model. The judge defaults to the main
+model; with `--judge` another model can grade, which avoids a judge favouring its own answers.
 
 ## Tests
 ```bash
 pip install pytest
 python -m pytest -q
 ```
-47 tests in `tests/` cover keyword search, lecture mentions, language detection, slide titles and
+60 tests in `tests/` cover keyword search, lecture mentions, language detection, slide titles and
 footer numbers (on PDFs generated in the test), merging, the lecture filter, translation of Korean
-questions, refusals, model fallback and cooldowns, streaming, practice-question checks and the
-saved-answer cache. They use a fake embedder and a fake AI client, so they run in under a second
+questions, refusals, model fallback and cooldowns across providers, choosing a model, hiding
+`<think>` reasoning, streaming, practice-question checks and the saved-answer cache. They use a fake embedder and a fake AI client, so they run in under a second
 with no API key, no internet and no PyTorch. GitHub Actions runs them on every push
 (`.github/workflows/tests.yml`).
+
+## Code layout
+| File | What it does |
+|---|---|
+| `ingest.py` | PDFs -> one chunk per slide (text, title, printed slide number) -> embeddings |
+| `rag.py` | search (hybrid + translation), prompts, model calls across providers, practice questions |
+| `config.py` | settings and the provider list |
+| `answer_cache.py`, `warm_cache.py` | saved answers for instant demo questions |
+| `app.py` | the website: page setup, sidebar, tabs |
+| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), plus shared helpers (`common.py`) and server-wide caches (`resources.py`) |
+| `evaluate.py`, `eval_quiz.py`, `compare_models.py` | measurements on `eval/test_set.jsonl` |
+| `tests/` | unit tests (no API key needed) |
 
 ## How the website handles uploads
 - Visitors upload their own lecture PDFs in the sidebar. Files are indexed in memory for that
@@ -222,5 +276,7 @@ too easy, which the checks above don't measure.
    GEMINI_API_KEY = "your-key"
    LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
    LLM_MODEL = "gemini-3.5-flash-lite"
+   GROQ_API_KEY = "your-groq-key"          # optional: more models, more free requests
+   OPENROUTER_API_KEY = "your-key"         # optional
    ```
    Every push to `main` redeploys the site.

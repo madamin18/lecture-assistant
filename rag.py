@@ -84,6 +84,11 @@ you your about into than then there these those should could must what's s""".sp
 _cooldown_until: dict[str, float] = {}
 
 
+def _cooling(ref: str) -> float:
+    """When `ref` may be tried again (its own cooldown, or its provider's after a bad key)."""
+    return max(_cooldown_until.get(ref, 0), _cooldown_until.get(f"{split_ref(ref)[0]}:*", 0))
+
+
 def tokenize(text: str) -> list:
     """Lowercase keyword tokens. Non-Latin words (e.g. Korean) also get 2-character pieces,
     so '프롬프트의' still matches '프롬프트'."""
@@ -171,10 +176,112 @@ def retry_delay(e: Exception) -> float | None:
     return float(m.group(1)) if m else None
 
 
-def make_client() -> OpenAI:
+def make_clients() -> dict:
+    """One API client per provider that has a key: {"gemini": OpenAI(...), "groq": ...}."""
     # No automatic retries: on failure we move straight to the next model in the list.
-    return OpenAI(api_key=config.LLM_API_KEY, base_url=config.LLM_BASE_URL,
-                  max_retries=0, timeout=config.LLM_TIMEOUT)
+    return {name: OpenAI(api_key=config.PROVIDERS[name]["key"],
+                         base_url=config.PROVIDERS[name]["base_url"],
+                         max_retries=0, timeout=config.LLM_TIMEOUT)
+            for name in config.available_providers() if config.PROVIDERS[name]["key"]}
+
+
+# ---------- model references: "groq:qwen/qwen3.8-27b", or a bare name for the main provider ----------
+def split_ref(ref: str) -> tuple:
+    """'groq:qwen/qwen3.8-27b' -> ('groq', 'qwen/qwen3.8-27b'); 'gemini-3.5-flash-lite' -> main."""
+    provider, sep, model = ref.partition(":")
+    if sep and provider in config.PROVIDERS:
+        return provider, model
+    return config.MAIN_PROVIDER, ref
+
+
+def canonical(ref: str) -> str:
+    """Bare name for the main provider's models (as before), 'provider:model' for the others."""
+    provider, model = split_ref(ref)
+    return model if provider == config.MAIN_PROVIDER else f"{provider}:{model}"
+
+
+def model_label(ref: str) -> str:
+    """'Groq · qwen/qwen3.8-27b'."""
+    provider, model = split_ref(ref)
+    return f"{config.PROVIDERS[provider]['label']} · {model}"
+
+
+def auto_chain() -> list:
+    """The models "Auto" tries, in order: the main provider's (LLM_MODEL, FALLBACK_MODELS), then
+    each other provider that has a key. More providers = more free daily quota."""
+    refs = [config.LLM_MODEL] + config.FALLBACK_MODELS
+    for name in config.available_providers()[1:]:
+        refs += [f"{name}:{m}" for m in config.PROVIDERS[name].get("auto", [])]
+    return list(dict.fromkeys(canonical(r) for r in refs))
+
+
+def list_models(provider: str, client) -> list:
+    """The provider's chat models for the model picker, fetched from its /models endpoint so the
+    list stays current (free models change often). Falls back to the configured ones."""
+    p = config.PROVIDERS[provider]
+    if provider == config.MAIN_PROVIDER:  # the tested ones, not every variant the API offers
+        return [r for r in auto_chain() if split_ref(r)[0] == provider]
+    try:
+        ids = sorted(m.id.removeprefix("models/") for m in client.models.list())
+    except Exception as e:  # noqa: BLE001  (any failure: just use the configured list)
+        print(f"[warn] couldn't list {provider} models: {e}")
+        ids = []
+    show = re.compile(p.get("show", ".*"))
+    ids = [i for i in ids if show.search(i)] or p.get("auto", [])
+    return [canonical(f"{provider}:{i}") for i in ids]
+
+
+def describe_error(e: Exception) -> str:
+    """Short reason a model failed, shown to the user when they picked that model."""
+    status = getattr(e, "status_code", None)
+    return {400: "rejected the request", 401: "API key rejected", 403: "no access with this key",
+            404: "model not found", 413: "request too large for this model's free tier",
+            429: "rate limit or daily quota reached", 503: "overloaded"}.get(
+        status, f"error {status}" if status else "timed out or couldn't connect")
+
+
+def _failures(errors: list) -> list:
+    """[[model, reason], ...] for the models that failed before one answered (shown in the UI)."""
+    return [[ref, describe_error(e)] for ref, e in dict(errors).items()]
+
+
+THINKING = re.compile(r"<think>.*?(?:</think>|$)", re.DOTALL)
+
+
+def strip_thinking(text: str) -> str:
+    """Some open models (e.g. Qwen) write their reasoning in <think>...</think> before the answer."""
+    return THINKING.sub("", text).strip()
+
+
+def without_thinking(pieces):
+    """strip_thinking() for a stream of text pieces; a tag can be split across pieces."""
+    buf, inside = "", False
+    for piece in pieces:
+        buf += piece
+        out = ""
+        while buf:
+            tag = "</think>" if inside else "<think>"
+            at = buf.find(tag)
+            if at >= 0:
+                if not inside:
+                    out += buf[:at]
+                buf, inside = buf[at + len(tag):], not inside
+                continue
+            keep = next((n for n in range(len(tag) - 1, 0, -1) if buf.endswith(tag[:n])), 0)
+            if not inside:
+                out += buf[:len(buf) - keep]
+            buf = buf[len(buf) - keep:]  # might be the start of a tag: wait for the next piece
+            break
+        if out:
+            yield out
+    if buf and not inside:
+        yield buf
+
+
+def _deltas(chunks):
+    for chunk in chunks:
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
 
 
 class SlideRAG:
@@ -184,6 +291,7 @@ class SlideRAG:
     SlideRAG(chunks=..., emb=...,      uses an index built in memory (uploaded PDFs);
              pdf_data={name: bytes})   pdf_data lets the UI render those slides
     Pass embedder/client to share one copy between many SlideRAG objects (the web app does).
+    client = {provider: OpenAI client} (see make_clients), or one client used for every provider.
 
     The web app shares one SlideRAG between all visitors, so it keeps no per-question state.
     Methods that the UI explains ("How I found this") take an optional `info` dict and fill it
@@ -206,7 +314,11 @@ class SlideRAG:
             from sentence_transformers import SentenceTransformer  # slow import: only if needed
             embedder = SentenceTransformer(config.EMBED_MODEL)
         self.model = embedder
-        self.client = client or make_client()
+        self.client = make_clients() if client is None else client
+
+    def client_for(self, provider: str):
+        """The API client for a provider (None if it has no key)."""
+        return self.client.get(provider) if isinstance(self.client, dict) else self.client
 
     @property
     def lectures(self) -> list:
@@ -289,15 +401,16 @@ class SlideRAG:
         return messages, hits
 
     def answer(self, question: str, k: int = config.TOP_K, history: list | None = None,
-               info: dict | None = None):
+               info: dict | None = None, model: str | None = None, fallback: bool = True):
         """Full answer in one go (terminal + evaluation). Returns (text, hits).
-        info["model"] is the model that answered (None: refused without asking the LLM)."""
+        info["model"] is the model that answered (None: refused without asking the LLM).
+        model/fallback: see chat()."""
         info = {} if info is None else info
         info["model"] = None
         messages, hits = self.prepare(question, k, history, info=info)
         if messages is None:
             return refusal_for(question), hits
-        reply = self.chat(messages, info=info)
+        reply = self.chat(messages, info=info, model=model, fallback=fallback)
         return (reply if reply is not None else config.BUSY_MESSAGE), hits
 
     def translate(self, question: str, previous: str | None = None) -> str | None:
@@ -309,82 +422,111 @@ class SlideRAG:
         return reply or None
 
     # ---------- LLM calls with fallback ----------
-    def _attempts(self):
-        """Yields the models to try, in order. If every model failed quickly (rate limit or
-        'overloaded' replies, not slow timeouts), waits 2 s and tries them all once more, since
-        those errors often clear within seconds."""
-        models = list(dict.fromkeys([config.LLM_MODEL] + config.FALLBACK_MODELS))
-        ready = [m for m in models if _cooldown_until.get(m, 0) <= time.time()]
+    def _attempts(self, model: str | None = None, fallback: bool = True):
+        """Yields the models to try, in order: `model` (a choice in the UI) first, then the
+        "Auto" chain unless fallback=False. Models (or whole providers) that failed recently are
+        skipped. If every model failed quickly (rate limit or 'overloaded' replies, not slow
+        timeouts), waits 2 s and tries them all once more, since those errors often clear."""
+        chain = [r for r in auto_chain() if self.client_for(split_ref(r)[0]) is not None]
+        if model:
+            model = canonical(model)
+            chain = [model] + ([r for r in chain if r != model] if fallback else [])
+        ready = [m for m in chain if _cooling(m) <= time.time()]
         start = time.time()
-        yield from ready or models  # everything cooling down: try them all anyway
+        for m in ready or chain:  # everything cooling down: try them all anyway
+            if ready and _cooling(m) > time.time():
+                continue  # its provider just rejected the key: skip that provider's other models
+            yield m
         if time.time() - start < 10:
             time.sleep(2)
             # soonest-available first: a rate-limited model before an overloaded one
-            yield from sorted(models, key=lambda m: _cooldown_until.get(m, 0))
+            yield from (m for m in sorted(chain, key=_cooling)
+                        if _cooldown_until.get(f"{split_ref(m)[0]}:*", 0) <= time.time())
 
-    def _failed(self, model: str, e: Exception):
-        status = getattr(e, "status_code", "timeout/connection")
-        print(f"[warn] {model} failed ({status}), trying next model...")
-        if isinstance(e, APIStatusError) and e.status_code in (400, 401, 403):
-            raise e  # bad request or bad key: other models won't help
-        if status == 429:
+    def _failed(self, ref: str, e: Exception, errors: list):
+        status = getattr(e, "status_code", None)
+        print(f"[warn] {ref} failed ({status or 'timeout/connection'}), trying next model...")
+        errors.append((ref, e))
+        provider = split_ref(ref)[0]
+        if status in (401, 403):  # bad key: skip the whole provider for a while
+            _cooldown_until[f"{provider}:*"] = time.time() + 600
+        elif status in (400, 413, 422):  # this request didn't suit this model; try the next
+            pass
+        elif status == 404:  # no such model (free models get retired)
+            _cooldown_until[ref] = time.time() + 3600
+        elif status == 429:
             # A per-minute rate limit clears within seconds. A used-up DAILY quota comes with a
             # long retryDelay: skip the model for up to an hour instead of retrying it all day.
             wait = retry_delay(e)
-            pause = min(wait, 3600) if wait and wait > 60 else 15
+            _cooldown_until[ref] = time.time() + (min(wait, 3600) if wait and wait > 60 else 15)
         else:  # a timeout or 503 means the model is overloaded
-            pause = config.COOLDOWN_SECONDS
-        _cooldown_until[model] = time.time() + pause
+            _cooldown_until[ref] = time.time() + config.COOLDOWN_SECONDS
 
-    def chat(self, messages: list, info: dict | None = None, **kwargs):
-        """Call the main model, falling back to the others. Returns None if all are busy.
-        Sets info["model"] to the model that answered. kwargs go to the API (e.g. temperature,
-        response_format, timeout)."""
-        kwargs.setdefault("temperature", 0)
-        for model in self._attempts():
-            try:
-                resp = self.client.chat.completions.create(model=model, messages=messages, **kwargs)
-            except (APIStatusError, APIConnectionError) as e:
-                self._failed(model, e)
-                continue
-            text = (resp.choices[0].message.content or "").strip() if resp.choices else ""
-            if not text:  # empty reply (e.g. blocked by a safety filter): try the next model
-                print(f"[warn] {model} returned an empty reply, trying next model...")
-                continue
-            if info is not None:
-                info["model"] = model
-            return text
+    @staticmethod
+    def _give_up(errors: list, info: dict | None):
+        """Every model failed. A rejected key or request is an error the site owner must fix
+        (raised); anything else means "busy, try again" (None)."""
+        if info is not None and errors:
+            info["error"] = describe_error(errors[-1][1])
+            info["failed"] = _failures(errors)
+        if errors and all(getattr(e, "status_code", None) in (400, 401, 403) for _, e in errors):
+            raise errors[-1][1]
         return None
 
-    def stream(self, messages: list, info: dict | None = None):
+    def chat(self, messages: list, info: dict | None = None, model: str | None = None,
+             fallback: bool = True, **kwargs):
+        """Ask `model` (default: the "Auto" chain), falling back to the other models unless
+        fallback=False. Returns None if all are busy. Sets info["model"] to the model that
+        answered (and info["error"] when none did). kwargs go to the API (e.g. temperature,
+        response_format, timeout)."""
+        kwargs.setdefault("temperature", 0)
+        errors = []
+        for ref in self._attempts(model, fallback):
+            provider, name = split_ref(ref)
+            try:
+                resp = self.client_for(provider).chat.completions.create(
+                    model=name, messages=messages, **kwargs)
+            except (APIStatusError, APIConnectionError) as e:
+                self._failed(ref, e, errors)
+                continue
+            text = strip_thinking(resp.choices[0].message.content or "") if resp.choices else ""
+            if not text:  # empty reply (e.g. blocked by a safety filter): try the next model
+                print(f"[warn] {ref} returned an empty reply, trying next model...")
+                continue
+            if info is not None:
+                info.update(model=ref, failed=_failures(errors))
+            return text
+        return self._give_up(errors, info)
+
+    def stream(self, messages: list, info: dict | None = None, model: str | None = None,
+               fallback: bool = True):
         """Like chat(), but yields the answer piece by piece as it is written.
         Falls back to the next model if one fails (or stays silent) before writing anything.
         Sets info["model"] once a model starts answering."""
-        for model in self._attempts():
+        errors = []
+        for ref in self._attempts(model, fallback):
+            provider, name = split_ref(ref)
             try:
-                chunks = iter(self.client.chat.completions.create(
-                    model=model, messages=messages, temperature=0, stream=True))
-                first = None
-                for chunk in chunks:  # wait for the first text, so early failures fall back
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        first = chunk.choices[0].delta.content
-                        break
+                pieces = without_thinking(_deltas(iter(
+                    self.client_for(provider).chat.completions.create(
+                        model=name, messages=messages, temperature=0, stream=True))))
+                # wait for the first visible text, so early failures fall back
+                first = next((p for p in pieces if p.strip()), None)
             except (APIStatusError, APIConnectionError) as e:
-                self._failed(model, e)
+                self._failed(ref, e, errors)
                 continue
             if first is None:
-                print(f"[warn] {model} returned an empty reply, trying next model...")
+                print(f"[warn] {ref} returned an empty reply, trying next model...")
                 continue
             if info is not None:
-                info["model"] = model
-            yield first
+                info.update(model=ref, failed=_failures(errors))
+            yield first.lstrip()
             try:
-                for chunk in chunks:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        yield chunk.choices[0].delta.content
+                yield from pieces
             except (APIStatusError, APIConnectionError):
                 yield "\n\n*(The AI service stopped responding, so this answer is cut off. Please ask again.)*"
             return
+        self._give_up(errors, info)
         yield config.BUSY_MESSAGE
 
     # ---------- practice questions ----------
@@ -406,7 +548,7 @@ class SlideRAG:
         return [pool[random.choice(list(p))] for p in parts if len(p)]
 
     def generate_quiz(self, n: int = 5, kind: str = "mixed", lectures=None, topic: str = "",
-                      lang: str = "same", info: dict | None = None):
+                      lang: str = "same", info: dict | None = None, model: str | None = None):
         """Practice questions from the slides. Returns a list of question dicts, each with the
         slide it came from under "hit"; [] if the model gave nothing usable; None if busy."""
         slides = self.quiz_slides(lectures, topic, n=min(max(n + 3, 8), config.QUIZ_MAX_SLIDES))
@@ -420,7 +562,7 @@ class SlideRAG:
                 n=n + extra, mix=QUIZ_MIX[kind], language=QUIZ_LANGUAGE[lang])},
             {"role": "user", "content": f"Slide excerpts:\n{context}{focus}"},
         ]
-        reply = self.chat(messages, info, temperature=0.8, timeout=config.QUIZ_TIMEOUT,
+        reply = self.chat(messages, info, model, temperature=0.8, timeout=config.QUIZ_TIMEOUT,
                           response_format={"type": "json_object"})
         if reply is None:
             return None
@@ -500,6 +642,16 @@ def cited_hits(answer: str, hits: list) -> list:
 # "[L03 slide 14]", "[L03 p.5-6]", and a few tags in one bracket: "[L01 slide 3; L01 slide 9]"
 _TAG = r"[^\[\]\n;,]+? (?:slide |p\.)\d+(?:-\d+)?"
 CITATION = re.compile(rf"\[({_TAG}(?:\s*[;,]\s*{_TAG})*)\]")
+
+
+def citation_facts(answer: str, hits: list) -> dict:
+    """What can be checked without a judge: slides cited that the model was given, citations
+    of slides it wasn't given (made up), whether it refused, and length."""
+    tags = {t.strip() for m in CITATION.finditer(answer) for t in re.split(r"[;,]", m.group(1))}
+    given = {h["cite"] for h in hits}
+    return {"cited": len(tags & given), "made_up": len(tags - given),
+            "refused": config.REFUSAL in answer or config.REFUSAL_KO in answer,
+            "words": len(answer.split())}
 
 
 def badge_citations(answer: str) -> str:
