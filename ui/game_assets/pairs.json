@@ -1,0 +1,86 @@
+[
+  {
+    "term": "Hallucination",
+    "en": "An unsupported generated claim",
+    "ru": "Неподтверждённое сгенерированное утверждение",
+    "ko": "근거 없이 생성된 주장"
+  },
+  {
+    "term": "Temperature",
+    "en": "Changes how random sampling is, not how true it is",
+    "ru": "Меняет случайность выбора, а не истинность",
+    "ko": "샘플링의 무작위성을 바꿀 뿐, 정확성은 바꾸지 않음"
+  },
+  {
+    "term": "Recall@k",
+    "en": "Relevant items in the top k ÷ all known relevant items",
+    "ru": "Релевантные в топ-k ÷ все известные релевантные",
+    "ko": "상위 k개 중 관련 항목 수 ÷ 전체 관련 항목 수"
+  },
+  {
+    "term": "Reciprocal rank",
+    "en": "1 ÷ the rank of the first relevant result",
+    "ru": "1 ÷ позиция первого релевантного результата",
+    "ko": "1 ÷ 첫 번째 관련 결과의 순위"
+  },
+  {
+    "term": "Chunk overlap",
+    "en": "Repeats boundary text so meaning isn't cut at a split",
+    "ru": "Повтор текста на границах, чтобы смысл не разрезался",
+    "ko": "경계 텍스트를 반복해 분할 지점에서 의미가 끊기지 않게 함"
+  },
+  {
+    "term": "Cosine similarity",
+    "en": "A ranking signal, not a verdict of correctness",
+    "ru": "Сигнал для ранжирования, а не доказательство верности",
+    "ko": "순위 신호일 뿐, 정답 판정이 아님"
+  },
+  {
+    "term": "Zero-shot prompt",
+    "en": "One explicit instruction, no examples",
+    "ru": "Одна чёткая инструкция без примеров",
+    "ko": "예시 없이 명확한 지시 하나"
+  },
+  {
+    "term": "Few-shot prompt",
+    "en": "An instruction plus a few worked examples",
+    "ru": "Инструкция плюс несколько примеров",
+    "ko": "지시와 몇 개의 예시"
+  },
+  {
+    "term": "Agent loop",
+    "en": "The model picks an action, calls a tool, observes, repeats",
+    "ru": "Модель выбирает действие, вызывает инструмент, наблюдает, повторяет",
+    "ko": "모델이 행동을 고르고, 도구를 호출하고, 결과를 보고 반복함"
+  },
+  {
+    "term": "Fixed workflow",
+    "en": "Code decides the path in advance",
+    "ru": "Путь заранее задаёт код",
+    "ko": "코드가 경로를 미리 정함"
+  },
+  {
+    "term": "Tokenizer",
+    "en": "Splits text into tokens; each model has its own",
+    "ru": "Делит текст на токены; у каждой модели свой",
+    "ko": "텍스트를 토큰으로 나눔; 모델마다 다름"
+  },
+  {
+    "term": "Abstention",
+    "en": "Saying the evidence is insufficient instead of guessing",
+    "ru": "Сказать, что данных недостаточно, а не угадывать",
+    "ko": "추측하지 않고 근거가 부족하다고 말함"
+  },
+  {
+    "term": "RAG",
+    "en": "Retrieve evidence, then answer from it",
+    "ru": "Найти доказательства и отвечать на их основе",
+    "ko": "근거를 검색한 뒤 그것에 근거해 답함"
+  },
+  {
+    "term": "Embedding",
+    "en": "A vector for meaning: similar texts end up close together",
+    "ru": "Вектор смысла: похожие тексты оказываются рядом",
+    "ko": "의미를 담은 벡터: 비슷한 글은 서로 가까움"
+  }
+]

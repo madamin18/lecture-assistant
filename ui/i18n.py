@@ -217,6 +217,7 @@ EN = {
     "quiz_btn": "Quiz",
     "n_slides": lambda n: f"{n} slide{'s' * (n != 1)}",
     "slide_label": "Slide",
+    "viewer_title": "Slide viewer",
     "slide_option": "slide {n}",
     "prev_slide": "Previous slide",
     "next_slide": "Next slide",
@@ -281,6 +282,7 @@ EN = {
                      "graded by {judge}, the same judge for every model.",
     # Mini games
     "games_btn": "Bored? Play a game",
+    "games_title": "Mini games",
     "games_caption": "A short break. Both games use terms from the course.",
     "games_pick": "Game",
     "game_runner": ":material/directions_run: Citation Runner",
@@ -480,6 +482,7 @@ RU = {
     "quiz_btn": "Тест",
     "n_slides": lambda n: f"{n} {plural_ru(n, 'слайд', 'слайда', 'слайдов')}",
     "slide_label": "Слайд",
+    "viewer_title": "Просмотр слайдов",
     "slide_option": "слайд {n}",
     "prev_slide": "Предыдущий слайд",
     "next_slide": "Следующий слайд",
@@ -545,6 +548,7 @@ RU = {
                      "оценивала модель {judge}, одна и та же для всех моделей.",
     # Mini games
     "games_btn": "Скучно? Сыграйте",
+    "games_title": "Мини-игры",
     "games_caption": "Небольшой перерыв. В обеих играх используются термины курса.",
     "games_pick": "Игра",
     "game_runner": ":material/directions_run: Бег за цитатами",
@@ -747,6 +751,7 @@ KO = {
     "quiz_btn": "퀴즈",
     "n_slides": lambda n: f"슬라이드 {n}장",
     "slide_label": "슬라이드",
+    "viewer_title": "슬라이드 보기",
     "slide_option": "슬라이드 {n}",
     "prev_slide": "이전 슬라이드",
     "next_slide": "다음 슬라이드",
@@ -811,6 +816,7 @@ KO = {
                      "채점 모델 {judge}가 평가했습니다.",
     # Mini games
     "games_btn": "심심하세요? 게임 하기",
+    "games_title": "미니 게임",
     "games_caption": "잠깐 쉬어 가세요. 두 게임 모두 강의 용어를 사용합니다.",
     "games_pick": "게임",
     "game_runner": ":material/directions_run: 인용 러너",

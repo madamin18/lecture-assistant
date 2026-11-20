@@ -1,0 +1,22 @@
+.match { font-family: var(--st-font); color: var(--st-text-color); }
+.bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 10px; }
+.msg { font-weight: 700; color: var(--st-green-text-color); }
+.new { margin-left: auto; font: inherit; padding: 4px 14px; cursor: pointer;
+       border-radius: var(--st-button-radius); border: 1px solid var(--st-primary-color);
+       background: transparent; color: var(--st-primary-color); }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.card { min-height: 88px; padding: 8px; font: inherit; font-size: 0.8rem; line-height: 1.25;
+        border-radius: var(--st-base-radius); border: 1px solid var(--st-primary-color);
+        background: var(--st-primary-color); color: var(--st-background-color); cursor: pointer;
+        transition: transform 0.15s; }
+.card:hover { transform: translateY(-2px); }
+.card .front { display: none; }
+.card .back { font-size: 1.6rem; font-weight: 700; }
+.card.open, .card.matched { background: var(--st-secondary-background-color);
+                            color: var(--st-text-color); border-color: var(--st-border-color); }
+.card.open .front, .card.matched .front { display: block; }
+.card.open .back, .card.matched .back { display: none; }
+.card.term .front { font-weight: 700; font-size: 0.9rem; }
+.card.matched { background: var(--st-green-background-color); color: var(--st-green-text-color);
+                border-color: var(--st-green-color); cursor: default; }
+@media (max-width: 520px) { .card { min-height: 76px; font-size: 0.7rem; padding: 5px; } }

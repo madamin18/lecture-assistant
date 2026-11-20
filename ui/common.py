@@ -123,6 +123,12 @@ def lecture_file(tag: str) -> str:
     return next(c["pdf"] for c in rag().chunks if c["lecture"] == tag)
 
 
+def dialog_per_language(func, title_key: str, **kwargs) -> dict:
+    """{language: dialog running func}. A dialog's title is fixed when it is defined, so there
+    is one per interface language; open the right one with dialogs[i18n.lang()](...)."""
+    return {code: st.dialog(i18n.TEXT[code][title_key], **kwargs)(func) for code in i18n.LANGUAGES}
+
+
 # ---------- callbacks shared by tabs ----------
 def thanks():
     st.toast(t("thanks"), icon=":material/favorite:")

@@ -57,7 +57,9 @@ def code_version() -> str:
     saved answers."""
     h = hashlib.sha1()
     here = Path(__file__).parent
-    for path in [Path(m.__file__) for m in MODULES] + [here / f for f in DATA_FILES]:
+    files = ([Path(m.__file__) for m in MODULES] + [here / f for f in DATA_FILES]
+             + sorted(here.glob("ui/game_assets/*")))  # the games' JS, CSS and word pairs
+    for path in files:
         try:
             h.update(path.read_bytes())
         except OSError:  # no demo index: the site runs upload-only

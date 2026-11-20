@@ -7,11 +7,9 @@ from ui import i18n
 from ui.i18n import t
 
 
-def _go_to_page(key: str, pages: list[int], step: int) -> None:
-    """Move the viewer by `step` pages, staying inside the valid range."""
-    current = st.session_state.get(key, pages[0])
-    idx = pages.index(current) if current in pages else 0
-    st.session_state[key] = pages[max(0, min(len(pages) - 1, idx + step))]
+def _step(key: str, total: int, step: int):
+    """Previous / Next: move the viewer's slider by `step`, staying on slides 1..total."""
+    st.session_state[key] = min(max(st.session_state[key] + step, 1), total)
 
 
 def _viewer(tag: str):
@@ -25,18 +23,15 @@ def _viewer(tag: str):
         label, _, name = pages.get(p, (None, None, ""))
         return f"{label or p} · {c.shorten(name, 40)}" if name else t("slide_option", n=label or p)
 
-    page_values = list(range(1, total + 1))
     key = f"viewer_{tag}"
-    current = st.session_state.get(key, page_values[0])
-    idx = page_values.index(current) if current in page_values else 0
-    with st.container(horizontal=True, gap="small"):  # side by side, next to each other
+    current = st.session_state.setdefault(key, 1)  # the slider's slide; Previous/Next change it
+    with st.container(horizontal=True, gap="small"):
         st.button(t("prev_slide"), key=f"prev_{tag}", icon=":material/chevron_left:",
-                  on_click=_go_to_page, args=(key, page_values, -1), disabled=idx == 0)
+                  on_click=_step, args=(key, total, -1), disabled=current == 1)
         st.button(t("next_slide"), key=f"next_{tag}", icon=":material/chevron_right:",
-                  on_click=_go_to_page, args=(key, page_values, 1),
-                  disabled=idx == len(page_values) - 1)
-    page = st.select_slider(t("slide_label"), options=page_values,
-                            key=key, format_func=slide_name)
+                  on_click=_step, args=(key, total, 1), disabled=current == total)
+    page = st.select_slider(t("slide_label"), options=range(1, total + 1), key=key,
+                            format_func=slide_name)
     label, chunk, name = pages.get(page, (None, None, ""))
     with st.container(horizontal=True):  # above the slide, so no scrolling is needed
         if chunk is not None and st.button(t("ask_slide"), type="primary",
@@ -49,10 +44,8 @@ def _viewer(tag: str):
     st.image(c.image(pdf, page), caption=c.slide_caption(title, page, label))
 
 
-# A dialog's title is fixed when it is defined: one per interface language.
-VIEWERS = {"en": st.dialog("Slide viewer", width="large", icon=":material/slideshow:")(_viewer),
-           "ru": st.dialog("Просмотр слайдов", width="large", icon=":material/slideshow:")(_viewer),
-           "ko": st.dialog("슬라이드 보기", width="large", icon=":material/slideshow:")(_viewer)}
+VIEWERS = c.dialog_per_language(_viewer, "viewer_title", width="large",
+                                icon=":material/slideshow:")
 
 
 def page():

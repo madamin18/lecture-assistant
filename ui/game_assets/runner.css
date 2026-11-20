@@ -1,0 +1,4 @@
+.runner { width: 100%; }
+.runner canvas { display: block; width: 100%; touch-action: manipulation; outline: none;
+                 border-radius: var(--st-base-radius); cursor: pointer; }
+.runner canvas:focus-visible { box-shadow: 0 0 0 2px var(--st-primary-color); }
