@@ -29,11 +29,12 @@ def _viewer(tag: str):
     key = f"viewer_{tag}"
     current = st.session_state.get(key, page_values[0])
     idx = page_values.index(current) if current in page_values else 0
-    prev_col, next_col = st.columns(2)
-    prev_col.button(t("prev_slide"), key=f"prev_{tag}", on_click=_go_to_page,
-                    args=(key, page_values, -1), disabled=idx == 0)
-    next_col.button(t("next_slide"), key=f"next_{tag}", on_click=_go_to_page,
-                    args=(key, page_values, 1), disabled=idx == len(page_values) - 1)
+    with st.container(horizontal=True, gap="small"):  # side by side, next to each other
+        st.button(t("prev_slide"), key=f"prev_{tag}", icon=":material/chevron_left:",
+                  on_click=_go_to_page, args=(key, page_values, -1), disabled=idx == 0)
+        st.button(t("next_slide"), key=f"next_{tag}", icon=":material/chevron_right:",
+                  on_click=_go_to_page, args=(key, page_values, 1),
+                  disabled=idx == len(page_values) - 1)
     page = st.select_slider(t("slide_label"), options=page_values,
                             key=key, format_func=slide_name)
     label, chunk, name = pages.get(page, (None, None, ""))
