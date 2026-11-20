@@ -69,6 +69,7 @@ EN = {
     "demo_caption": "Demo: the lectures of *Design of Generative AI Application Systems*. Upload "
                     "your own PDFs in the sidebar to use those instead.",
     "ask": ":material/forum: Ask",
+    "summary": ":material/summarize: Summary",
     "practice": ":material/quiz: Practice exam",
     "browse": ":material/auto_stories: Browse lectures",
     "compare": ":material/compare_arrows: Compare models",
@@ -104,8 +105,8 @@ EN = {
     "sb_save": "Save chat",
     "sb_save_help": "Download this chat as study notes (Markdown), with the slides each answer "
                     "came from.",
-    "sb_disclaimer": "Answers and practice questions come only from the slides and can still be "
-                     "wrong. Check the slide shown with each one before relying on it.",
+    "sb_disclaimer": "Answers, summaries and practice questions come only from the slides and "
+                     "can still be wrong. Check the slides they cite before relying on them.",
 
     # slides, sources, "How I found this"
     "caption_pdf_page": "{title} · PDF page {page}",
@@ -225,6 +226,22 @@ EN = {
     "ask_slide_q": 'Explain this slide from {tag} (slide {n}): "{name}"',
     "quiz_lecture": "Quiz me on this lecture",
 
+    # Summary tab
+    "sum_caption": "A one-page summary of a lecture: what it covers, its key points and key "
+                   "terms. The AI writes it from that lecture's slides only, and every point "
+                   "names the slides it comes from.",
+    "sum_pick": "Lecture",
+    "sum_make": "Summarize {tag}",
+    "sum_writing": "Reading the slides of {tag} and writing the summary…",
+    "sum_written": "Written by {model} in {s} s after reading {slides} · cites {cited}.",
+    "sum_saved": "Saved summary, written by {model} after reading {slides} · cites {cited}.",
+    "sum_trimmed": "This lecture is long, so its longest slides were shortened to fit.",
+    "sum_made_up": "{n} citation(s) don't match a slide of this lecture: ignore those.",
+    "sum_download": "Download summary",
+    "sum_ask": "Ask about this lecture",
+    "sum_lecture": "Summarize this lecture",
+    "sum_retry": "Write it again",
+
     # Compare models
     "cmp_title": ":material/compare_arrows: Which AI model answers best?",
     "cmp_caption": "Every model gets the same question and the same slides, so only the writing "
@@ -331,6 +348,7 @@ RU = {
     "demo_caption": "Демо: лекции курса *Design of Generative AI Application Systems*. Загрузите "
                     "свои PDF на боковой панели, чтобы работать с ними.",
     "ask": ":material/forum: Вопросы",
+    "summary": ":material/summarize: Конспект",
     "practice": ":material/quiz: Пробный экзамен",
     "browse": ":material/auto_stories: Слайды лекций",
     "compare": ":material/compare_arrows: Сравнить модели",
@@ -368,9 +386,9 @@ RU = {
     "sb_save": "Сохранить чат",
     "sb_save_help": "Скачать чат как конспект (Markdown) со слайдами, на которых основан каждый "
                     "ответ.",
-    "sb_disclaimer": "Ответы и вопросы для практики берутся только из слайдов, но всё равно "
-                     "могут быть неточными. Прежде чем полагаться на ответ, проверьте "
-                     "показанный слайд.",
+    "sb_disclaimer": "Ответы, конспекты и вопросы для практики берутся только из слайдов, но "
+                     "всё равно могут быть неточными. Прежде чем на них полагаться, проверьте "
+                     "слайды, на которые они ссылаются.",
 
     # slides, sources, "How I found this"
     "caption_pdf_page": "{title} · стр. PDF {page}",
@@ -490,6 +508,24 @@ RU = {
     "ask_slide_q": "Объясни этот слайд из {tag} (слайд {n}): «{name}»",
     "quiz_lecture": "Тест по этой лекции",
 
+    # Summary tab
+    "sum_caption": "Конспект лекции на одну страницу: о чём она, главные идеи и ключевые "
+                   "термины. ИИ пишет его только по слайдам этой лекции, и у каждой мысли "
+                   "указаны слайды, откуда она взята.",
+    "sum_pick": "Лекция",
+    "sum_make": "Сделать конспект {tag}",
+    "sum_writing": "Читаю слайды {tag} и пишу конспект…",
+    "sum_written": "Написал {model} за {s} с, прочитав {slides} · ссылается на {cited}.",
+    "sum_saved": "Сохранённый конспект: написал {model}, прочитав {slides} · ссылается на "
+                 "{cited}.",
+    "sum_trimmed": "Лекция длинная, поэтому самые длинные слайды были сокращены.",
+    "sum_made_up": "Ссылки, которые не совпадают ни с одним слайдом этой лекции ({n}), "
+                   "не учитывайте.",
+    "sum_download": "Скачать конспект",
+    "sum_ask": "Спросить об этой лекции",
+    "sum_lecture": "Конспект этой лекции",
+    "sum_retry": "Написать заново",
+
     # Compare models
     "cmp_title": ":material/compare_arrows: Какая модель ИИ отвечает лучше?",
     "cmp_caption": "Каждая модель получает один и тот же вопрос и одни и те же слайды, поэтому "
@@ -605,6 +641,7 @@ KO = {
     "demo_caption": "데모: *Design of Generative AI Application Systems* 강의 자료입니다. 사이드바에 "
                     "직접 PDF를 업로드하면 그 자료로 사용할 수 있습니다.",
     "ask": ":material/forum: 질문하기",
+    "summary": ":material/summarize: 요약",
     "practice": ":material/quiz: 모의고사",
     "browse": ":material/auto_stories: 강의 둘러보기",
     "compare": ":material/compare_arrows: 모델 비교",
@@ -639,8 +676,8 @@ KO = {
     "sb_clear": "대화 지우기",
     "sb_save": "대화 저장",
     "sb_save_help": "이 대화를 각 답변의 출처 슬라이드와 함께 학습 노트(Markdown)로 내려받습니다.",
-    "sb_disclaimer": "답변과 연습 문제는 슬라이드에서만 만들어지지만 틀릴 수 있습니다. 믿기 전에 "
-                     "함께 표시된 슬라이드를 확인하세요.",
+    "sb_disclaimer": "답변, 요약, 연습 문제는 슬라이드에서만 만들어지지만 틀릴 수 있습니다. "
+                     "믿기 전에 인용된 슬라이드를 확인하세요.",
 
     # slides, sources, "How I found this"
     "caption_pdf_page": "{title} · PDF {page}쪽",
@@ -758,6 +795,21 @@ KO = {
     "ask_slide": "이 슬라이드에 대해 묻기",
     "ask_slide_q": '{tag}의 이 슬라이드(슬라이드 {n})를 설명해 주세요: "{name}"',
     "quiz_lecture": "이 강의로 퀴즈 풀기",
+
+    # Summary tab
+    "sum_caption": "강의 한 편을 한 페이지로 요약합니다: 개요, 핵심 내용, 핵심 용어. AI가 그 "
+                   "강의의 슬라이드만 보고 작성하며, 각 내용에 출처 슬라이드가 표시됩니다.",
+    "sum_pick": "강의",
+    "sum_make": "{tag} 요약하기",
+    "sum_writing": "{tag} 슬라이드를 읽고 요약하는 중…",
+    "sum_written": "{model}이(가) {slides}을 읽고 {s}초 만에 작성 · 인용: {cited}",
+    "sum_saved": "저장된 요약: {model}이(가) {slides}을 읽고 작성 · 인용: {cited}",
+    "sum_trimmed": "강의가 길어서 가장 긴 슬라이드 일부를 줄여서 읽었습니다.",
+    "sum_made_up": "이 강의의 슬라이드와 맞지 않는 인용 {n}개는 무시하세요.",
+    "sum_download": "요약 다운로드",
+    "sum_ask": "이 강의에 대해 질문하기",
+    "sum_lecture": "이 강의 요약하기",
+    "sum_retry": "다시 작성하기",
 
     # Compare models
     "cmp_title": ":material/compare_arrows: 어떤 AI 모델이 가장 잘 답할까요?",

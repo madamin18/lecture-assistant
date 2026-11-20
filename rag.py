@@ -78,6 +78,52 @@ QUIZ_MIX = {
     "short": "Make them all short answer (\"short\").",
 }
 
+SUMMARY_PROMPT = """You write a one-page study summary of one lecture for a university student,
+using ONLY the lecture's slides provided (in the order they are taught).
+
+Write in {language}, in Markdown, with exactly these three parts and headings:
+### {overview}
+2-3 sentences: what the lecture is about and what a student should take away from it.
+### {points}
+6-10 bullet points with the main ideas, in the order the lecture teaches them. End each bullet
+with the slide(s) it comes from, e.g. [L03 slide 14].
+### {terms}
+Up to 8 bullet points "**term**: what it means" for key terms that the slides define or
+explain, each with its slide.
+
+Rules:
+- Use only the slides. Never add outside knowledge, and never invent slide numbers: copy tags
+  exactly from the slide headers. One tag per bracket.
+- Skip slide footers, page numbers, and slides about logistics (title, agenda, thank you)
+  unless they hold rules students must follow, such as what to submit.
+- {terms_rule}
+- Start directly with the first heading: no greeting, introduction or closing remarks."""
+
+# No example term here: with "e.g. 환각(hallucination)" one summary listed "hallucination" as a key
+# term of a lecture that never mentions it, with a note saying so.
+SUMMARY_TERMS = {
+    "en": "Keep technical terms as they are written on the slides.",
+    "ko": "Write each technical term in Korean followed by the term as written on the slides, in "
+          "parentheses.",
+    "ru": "Write each technical term in Russian followed by the term as written on the slides, "
+          "in parentheses.",
+}
+
+
+def fit_cap(lengths: list, budget: int) -> int:
+    """The longest a slide's text may be so that all of them together fit in `budget`
+    characters: short slides stay whole and only the longest are cut."""
+    if sum(lengths) <= budget:
+        return max(lengths, default=0)
+    lo, hi = 0, max(lengths)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if sum(min(n, mid) for n in lengths) <= budget:
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+
 # Common words that would otherwise count as keyword matches.
 STOPWORDS = set("""a an and are as at be by can do does did for from has have how i in is it its
 of on or that the their them they this to was what when where which who why will with would
@@ -620,6 +666,31 @@ class SlideRAG:
         if reply is None:
             return None
         return clean_quiz(reply, slides, kind)[:n]
+
+    # ---------- lecture summaries ----------
+    def summary_messages(self, tag: str, lang: str = "en", info: dict | None = None):
+        """The LLM messages for a summary of lecture `tag` in `lang` (en/ko/ru), and the slides
+        they contain. A lecture longer than config.SUMMARY_MAX_CHARS has its longest slides
+        shortened; info gets "slides" (how many) and "trimmed" (whether any were cut)."""
+        slides = [c for c in self.chunks if c["lecture"] == tag]
+        cap = fit_cap([len(c["text"]) for c in slides], config.SUMMARY_MAX_CHARS)
+        if info is not None:
+            info.update(slides=len(slides), trimmed=any(len(c["text"]) > cap for c in slides))
+        overview, points, terms = config.SUMMARY_HEADINGS[lang]
+        prompt = SUMMARY_PROMPT.format(language=LANGUAGE_NAMES[lang], overview=overview,
+                                       points=points, terms=terms, terms_rule=SUMMARY_TERMS[lang])
+        context = "\n\n".join(f"[{c['cite']}]\n{c['text'][:cap]}" for c in slides)
+        title = slides[0]["title"] if slides else tag
+        return [{"role": "system", "content": prompt},
+                {"role": "user", "content": f"Lecture {tag}: {title}\n\nSlides:\n{context}"}], slides
+
+    def summarize(self, tag: str, lang: str = "en", info: dict | None = None,
+                  model: str | None = None):
+        """A study summary of lecture `tag`, streamed piece by piece like stream() (which
+        yields config.BUSY_MESSAGE if every model is busy). With no model chosen it starts with
+        config.SUMMARY_MODEL (by default the main model), then falls back as usual."""
+        messages, _ = self.summary_messages(tag, lang, info)
+        return self.stream(messages, info, model=model or config.SUMMARY_MODEL or config.LLM_MODEL)
 
 
 def clean_quiz(reply: str, slides: list, kind: str = "mixed") -> list:

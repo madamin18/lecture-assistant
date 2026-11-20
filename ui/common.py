@@ -12,8 +12,8 @@ from ui import i18n, resources
 from ui.i18n import t
 
 # Tabs (the label is t(key), in the interface language)
-ASK, PRACTICE, BROWSE, COMPARE = "ask", "practice", "browse", "compare"
-MODES = [ASK, PRACTICE, BROWSE, COMPARE]
+ASK, SUMMARY, PRACTICE, BROWSE, COMPARE = "ask", "summary", "practice", "browse", "compare"
+MODES = [ASK, SUMMARY, PRACTICE, BROWSE, COMPARE]
 AUTO = "auto"  # the model picker's "Auto" choice
 
 

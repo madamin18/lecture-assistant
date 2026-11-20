@@ -108,6 +108,21 @@ BUSY_MESSAGE = "The AI service is busy right now. Please try again in a minute."
 QUIZ_MAX_SLIDES = 20     # slides sent to the model per quiz
 QUIZ_TIMEOUT = 30        # writing 15 questions takes ~5-10 s on flash-lite; longer than one answer
 
+# Lecture summaries ("Summary" tab). A summary reads the whole lecture (the course's lectures
+# have 15,000-28,000 characters of slide text), so with no model chosen it starts with the main
+# model rather than Groq: Groq's free tier allows 8,000 tokens a minute, which one summary
+# (up to ~7,500 tokens) would use up, leaving none for chat answers. Empty = LLM_MODEL.
+SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "")
+SUMMARY_MAX_CHARS = 30000   # slide text sent per summary (~7,500 tokens of English): every
+                            # course lecture fits whole; longer uploads have their longest
+                            # slides shortened
+# The summary's three headings, in each interface language.
+SUMMARY_HEADINGS = {
+    "en": ("Overview", "Key points", "Key terms"),
+    "ru": ("Обзор", "Главные идеи", "Ключевые термины"),
+    "ko": ("개요", "핵심 내용", "핵심 용어"),
+}
+
 # One-click starter questions on the website (label shown on the chip -> question asked).
 # warm_cache.py prepares answers for these so the demo is instant.
 DEMO_QUESTIONS = {

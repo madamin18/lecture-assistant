@@ -41,6 +41,9 @@ def _viewer(tag: str):
         if st.button(t("quiz_lecture"), icon=":material/quiz:"):
             st.session_state.goto = ("quiz", tag)
             st.rerun()
+        if st.button(t("sum_lecture"), icon=":material/summarize:"):
+            st.session_state.goto = ("summary", tag)
+            st.rerun()
     st.image(c.image(pdf, page), caption=c.slide_caption(title, page, label))
 
 

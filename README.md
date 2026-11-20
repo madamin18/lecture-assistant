@@ -22,7 +22,7 @@ slides is translated for the search (and the translation is shown to the model n
 original), and the answer comes back in the question's language with key terms from the slides
 in parentheses, e.g. галлюцинация (hallucination).
 
-Four tabs:
+Five tabs:
 - **Ask** (English or 한국어): chat with the lecture slides. Citations appear as badges in the
   answer. Each answer shows how it was found (translation, hybrid search, which model answered,
   timings), the cited slides as images, a relevance table of the other slides searched, thumbs
@@ -30,6 +30,14 @@ Four tabs:
   cites (from the embeddings, no extra AI call), named by their titles. The
   sidebar can limit the search to chosen lectures, and "Save chat" downloads the chat as
   Markdown study notes with the slides each answer cites.
+- **Summary**: a one-page study summary of a lecture in the interface language (overview, key
+  points, key terms), written from that lecture's slides only, with every point citing its
+  slides. Uploading PDFs opens this tab and summarizes the first uploaded lecture straight away;
+  the slide viewer has a "Summarize this lecture" button too. Each summary says which model
+  wrote it, how many slides it read and cites, and flags any citation that doesn't match a
+  slide of the lecture (with a "Write it again" button). Download as Markdown, or jump to a
+  quiz or questions on that lecture. The 9 course lectures have summaries prepared in advance
+  in all three languages, so they open instantly.
 - **Practice exam**: exam-style questions (multiple choice and/or short answer) from the slides,
   in English, Korean or the slides' language. Picking an answer shows right away whether it is
   correct, with an explanation and the source slide; short answers reveal a model answer and
@@ -38,8 +46,8 @@ Four tabs:
   at 80%+, "Retry the ones I missed", "Try again", and a printable study sheet (questions first,
   answer key at the end).
 - **Browse lectures**: a card per lecture with its cover slide, a slide viewer whose slider shows
-  each slide's title, and shortcuts to ask about a slide, search one lecture, or get a
-  5-question quiz on it.
+  each slide's title, and shortcuts to ask about a slide, search one lecture, summarize it, or
+  get a 5-question quiz on it.
 - **Compare models**: one question goes to 2-3 AI models at once (e.g. Gemini vs Qwen on Groq),
   with the same slides, so only the writing differs. Each answer shows its time, how many slides
   it cites and any made-up citations. The names stay hidden until you vote for the better
@@ -94,7 +102,7 @@ lecture title shown in the app.
 python ingest.py                     # build the index (re-run whenever slides change)
 python rag.py "What is RAG?"         # quick test in the terminal
 python -m streamlit run app.py       # website at http://localhost:8501
-python warm_cache.py                 # prepare instant answers for the demo questions
+python warm_cache.py                 # prepare instant answers and lecture summaries for the demo
 python check_models.py               # which models each API key can use
 python compare_models.py --auto      # score every Auto model on the test set
 ```
@@ -102,7 +110,9 @@ python compare_models.py --auto      # score every Auto model on the test set
 `index/answer_cache.json`; the site shows them instantly (and they still work if the AI service
 is busy). They are ignored automatically once the index is rebuilt; re-run the script then. The
 site also remembers every chat's first question while it runs, so repeated questions are
-instant too. Follow-up questions are always answered fresh.
+instant too. Follow-up questions are always answered fresh. It also writes a summary of every
+demo lecture in English, Russian and Korean to `index/summaries.json` (27 requests; anything
+already saved is skipped, `--summaries` does only this part).
 
 ## How it works
 1. **Ingest** (`ingest.py`): one chunk per slide; slides with under 80 characters (titles,
@@ -216,12 +226,13 @@ correctness"), which all three models cited.
 pip install pytest
 python -m pytest -q
 ```
-437 tests in `tests/` cover keyword search, lecture mentions (English, Korean, Russian),
+533 tests in `tests/` cover keyword search, lecture mentions (English, Korean, Russian),
 language detection, slide titles and footer numbers (on PDFs generated in the test), merging,
 the lecture filter, translation of cross-language questions, refusals, model fallback and
 cooldowns across providers (including Groq's "try again in ..." limits), choosing a model,
 hiding `<think>` reasoning, streaming, citation formats, related-slide suggestions,
-practice-question checks and the saved-answer cache; 370 of them check that every
+practice-question checks, lecture summaries (what is sent, the length limit, which model
+writes them), the mini games' files and the saved-answer cache; 448 of them check that every
 interface text has a Russian and a Korean version using the same values. They use a fake embedder and a fake AI
 client, so they run in under a second with no API key, no internet, no Streamlit and no
 PyTorch. GitHub Actions runs them on every push (`.github/workflows/tests.yml`).
@@ -230,17 +241,19 @@ PyTorch. GitHub Actions runs them on every push (`.github/workflows/tests.yml`).
 | File | What it does |
 |---|---|
 | `ingest.py` | PDFs -> one chunk per slide (text, title, printed slide number) -> embeddings |
-| `rag.py` | search (hybrid + translation), prompts, model calls across providers, practice questions |
+| `rag.py` | search (hybrid + translation), prompts, model calls across providers, practice questions, lecture summaries |
 | `config.py` | settings and the provider list |
-| `answer_cache.py`, `warm_cache.py` | saved answers for instant demo questions |
+| `answer_cache.py`, `warm_cache.py` | saved answers and lecture summaries for an instant demo |
 | `app.py` | the website: page setup, sidebar, tabs |
-| `ui/` | one file per tab (`ask.py`, `practice.py`, `browse.py`, `compare.py`), the mini games (`games.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English, Russian and Korean (`i18n.py`) |
+| `ui/` | one file per tab (`ask.py`, `summary.py`, `practice.py`, `browse.py`, `compare.py`), the mini games (`games.py`), plus shared helpers (`common.py`), server-wide caches (`resources.py`) and the interface text in English, Russian and Korean (`i18n.py`) |
 | `evaluate.py`, `eval_quiz.py`, `compare_models.py` | measurements on `eval/test_set.jsonl` |
 | `tests/` | unit tests (no API key needed) |
 
 ## How the website handles uploads
 - Visitors upload their own lecture PDFs in the sidebar. Files are indexed in memory for that
-  browser tab only: no one else can search them and nothing is saved on the server.
+  browser tab only: no one else can search them and nothing is saved on the server. The site
+  then opens the Summary tab and summarizes the first uploaded lecture; summaries of uploads
+  are kept in that browser tab only, too.
 - With no uploads, the site runs in **demo mode** on the slides in `data/slides/` (index built by
   `ingest.py`): the 9 course lectures, with one-click example questions (including a Korean
   one).
@@ -344,6 +357,26 @@ every question: `eval/quiz_results.jsonl`).
 The checker is the same model family as the generator, so these are estimates; a manual check
 of 6 random questions agreed. Most questions test recall of a slide, and some wrong options are
 too easy, which the checks above don't measure.
+
+### Summary quality
+`python warm_cache.py --summaries` writes a summary of each of the 9 lectures in English,
+Russian and Korean (27 summaries, Nov 20) and checks every citation against the slides of that
+lecture.
+
+| Check (27 summaries) | Result |
+|---|---|
+| Citations that don't match a slide of the lecture | 0 (after one rewrite, see below) |
+| Different slides cited per summary | 18-49% of the lecture's slides (29% on average) |
+| Length | 327-533 words |
+| Time to write one | 3.7 s (median) |
+
+Two problems showed up and were fixed: the prompt's example term `환각(hallucination)` made one
+Korean summary list "hallucination" as a key term of a lecture that never mentions it (the
+example was removed, and key terms must be ones the slides define), and once Gemini Flash-Lite
+wrote `[L14 slide 14]` for `[L06 slide 14]` in all 18 citations of a summary. The citation
+check caught that; `warm_cache.py` now rewrites such a summary (up to 3 tries) and the website
+offers "Write it again". The citation check only proves a cited slide exists in the lecture,
+not that it says what the sentence claims; that still needs a reader.
 
 ## Deploy
 1. Push this folder to GitHub, **including `index/` and `data/slides/`**.

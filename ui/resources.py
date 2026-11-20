@@ -65,6 +65,20 @@ def saved_answers(version: str) -> dict:
     return answer_cache.load_file()
 
 
+# ---------- lecture summaries ----------
+@st.cache_resource(show_spinner=False)
+def saved_summaries(version: str) -> dict:
+    """Summaries of the demo lectures prepared by warm_cache.py, {"L03|en": entry}."""
+    return answer_cache.load_summaries()
+
+
+@st.cache_resource
+def site_summaries(version: str) -> dict:
+    """Summaries of the demo lectures written on this server, shared by all visitors.
+    Summaries of uploaded slides are never put here (they stay in the visitor's own tab)."""
+    return {}
+
+
 # ---------- slide images ----------
 @st.cache_data(max_entries=400, show_spinner=False)
 def slide_image(pdf_ref: str, page: int, doc_key: str, _data: bytes | None) -> bytes:

@@ -1,8 +1,10 @@
 """Step 3: the website.  Run:  python -m streamlit run app.py
 
-Four tabs (each in ui/):
+Five tabs (each in ui/):
   Ask              chat with the slides; each answer shows how it was found and the slides it
                    came from, with follow-up suggestions
+  Summary          a one-page summary of a lecture (overview, key points, key terms), each point
+                   citing its slides; opens by itself after an upload
   Practice exam    generated exam-style questions with instant feedback and a running score
   Browse lectures  lecture cards and a slide viewer, with shortcuts to ask about a slide or
                    get quizzed on a lecture
@@ -32,11 +34,12 @@ import ui.games
 import ui.i18n
 import ui.practice
 import ui.resources
+import ui.summary
 
 # Reloaded in this order (each module after the ones it imports).
 MODULES = (config, answer_cache, ingest, rag_module, ui.i18n, ui.resources, ui.common,
-           ui.ask, ui.practice, ui.browse, ui.compare, ui.games)
-DATA_FILES = ("index/chunks.json", "index/answer_cache.json")
+           ui.ask, ui.practice, ui.browse, ui.summary, ui.compare, ui.games)
+DATA_FILES = ("index/chunks.json", "index/answer_cache.json", "index/summaries.json")
 
 
 def sync_secrets():
@@ -157,13 +160,17 @@ if st.session_state.get("corpus_key") != key or st.session_state.get("version") 
         if rag:
             st.toast(t("upload_ready", slides=len(rag.chunks), files=len(files)),
                      icon=":material/check_circle:")
+            if st.session_state.get("corpus_key") != key:  # new upload: show its summary
+                st.session_state.update(mode=c.SUMMARY, summary_tag=rag.lectures[0][0],
+                                        summary_autogen=True)
     else:
         rag, notes = resources.load_demo(VERSION), []
     st.session_state.update(corpus_key=key, version=VERSION, rag=rag, notes=notes,
                             messages=[], quiz=None, comparison=None, lecture_filter=[],
-                            quiz_lectures=[])
+                            quiz_lectures=[], summaries={})
 for name, default in (("messages", []), ("quiz", None), ("comparison", None),
-                      ("lecture_filter", []), ("quiz_lectures", []), ("mode", c.ASK)):
+                      ("lecture_filter", []), ("quiz_lectures", []), ("summaries", {}),
+                      ("mode", c.ASK)):
     st.session_state.setdefault(name, default)
 if st.session_state.mode not in c.MODES:  # e.g. a tab name saved by an older version
     st.session_state.mode = c.ASK
@@ -177,6 +184,8 @@ if goto:
         st.session_state.update(mode=c.ASK, pending_question=payload)
     elif where == "quiz":
         st.session_state.update(mode=c.PRACTICE, quiz_lectures=[payload], quiz_autogen=True)
+    elif where == "summary":
+        st.session_state.update(mode=c.SUMMARY, summary_tag=payload, summary_autogen=True)
 
 
 # ---------- sidebar: search and model settings ----------
@@ -237,5 +246,5 @@ if not files:
 mode = st.segmented_control("Mode", c.MODES, required=True, key="mode", format_func=t,
                             label_visibility="collapsed", width="stretch")
 
-{c.PRACTICE: ui.practice.page, c.BROWSE: ui.browse.page,
+{c.SUMMARY: ui.summary.page, c.PRACTICE: ui.practice.page, c.BROWSE: ui.browse.page,
  c.COMPARE: ui.compare.page}.get(mode, ui.ask.page)()
